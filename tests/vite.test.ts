@@ -69,15 +69,6 @@ describe("builderExtension", () => {
 		expect(configure(root).build.rollupOptions.external).toEqual(["frappe-builder-extension-sdk"]);
 	});
 
-	it("does not pre-bundle the SDK or its Vue adapter in development", () => {
-		const root = project({ "src/main.js": "" });
-
-		expect(configure(root, "serve").optimizeDeps.exclude).toEqual([
-			"frappe-builder-extension-sdk",
-			"frappe-builder-extension-sdk/vue",
-		]);
-	});
-
 	it("emits the entry under the one name the record's URL ends in", () => {
 		const root = project({ "src/main.js": "" });
 
@@ -245,6 +236,7 @@ describe("the descriptor", () => {
 			"manifest.json": JSON.stringify({
 				name: "acme/icons",
 				label: "Icons",
+				description: "Add and manage icons.",
 				version: "2.1.0",
 				capabilities: ["block.update"],
 			}),
@@ -254,6 +246,7 @@ describe("the descriptor", () => {
 			v: 1,
 			name: "acme/icons",
 			label: "Icons",
+			description: "Add and manage icons.",
 			version: "2.1.0",
 			capabilities: ["block.update"],
 			// the dev server serves the source path, not the built name

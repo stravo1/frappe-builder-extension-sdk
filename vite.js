@@ -92,16 +92,7 @@ export default function builderExtension({ builderUrl } = {}) {
 			root = path.resolve(config.root ?? process.cwd());
 			entry = findEntry(root);
 			serving = env.command === "serve";
-			const excluded = config.optimizeDeps?.exclude ?? [];
 			return {
-				// The Vue adapter imports the root SDK. If Vite pre-bundles either
-				// package, that nested import becomes a second SDK runtime with no
-				// handshake channel. Leave both as source modules so resolveId below
-				// points their root import at Builder's connected instance.
-				optimizeDeps: {
-					...config.optimizeDeps,
-					exclude: [...new Set([...excluded, SDK, `${SDK}/vue`])],
-				},
 				// every asset is fetched relative to the module that names it, because
 				// an install lives under /builder_extension_asset/<name>@<version>/ and
 				// the default base would fetch a chunk's stylesheet from the site root
@@ -183,6 +174,7 @@ export default function builderExtension({ builderUrl } = {}) {
 						v: 1,
 						name: manifest.name,
 						label: manifest.label,
+						description: manifest.description,
 						version: manifest.version,
 						capabilities: manifest.capabilities ?? [],
 						entry: servedPath(entry),

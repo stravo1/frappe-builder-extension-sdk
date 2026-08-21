@@ -13,6 +13,8 @@ export type Capability = (typeof CAPABILITIES)[number];
 export type InstalledExtension = {
     name: string;
     label: string;
+    /** A brief summary shown in the Extensions panel. */
+    description?: string;
     entry: string;
     capabilities: Capability[];
     /** The URL of the SVG the package ships. Unset when it ships none. */
