@@ -69,6 +69,15 @@ describe("builderExtension", () => {
 		expect(configure(root).build.rollupOptions.external).toEqual(["frappe-builder-extension-sdk"]);
 	});
 
+	it("does not pre-bundle the SDK or its Vue adapter in development", () => {
+		const root = project({ "src/main.js": "" });
+
+		expect(configure(root, "serve").optimizeDeps.exclude).toEqual([
+			"frappe-builder-extension-sdk",
+			"frappe-builder-extension-sdk/vue",
+		]);
+	});
+
 	it("emits the entry under the one name the record's URL ends in", () => {
 		const root = project({ "src/main.js": "" });
 
