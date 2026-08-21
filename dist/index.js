@@ -295,12 +295,17 @@ const d = () => {
   main: (e) => B(e),
   /**
    * A dialog has no registration to hang a loader on: it is opened by
-   * `ui.openDialog`, never registered. So it declares its document on its own.
-   * A panel and a settings page carry `load` on the item that shows them.
+   * `ui.openDialog`, never registered. The popover declares itself so Builder
+   * chrome can offer it from the installed extension list.
    */
   dialog: (e) => u("dialog", e),
-  /** The same, for the floating panel `ui.openPopover` opens. */
-  popover: (e) => u("popover", e),
+  /**
+   * The same, for the floating panel `ui.openPopover` opens.
+   *
+   * Builder chrome opens a declared popover itself, so the size travels with
+   * the registration rather than with the open call. Omit it for the default.
+   */
+  popover: ({ load: e, ...t }) => (u("popover", { load: e }), l("popover.register", t)),
   /** One tab, registered from the entry frame and drawn by the host (Tier C). */
   leftPanel: U,
   /** A descriptor. Builder draws the button and posts the action back (Tier A). */

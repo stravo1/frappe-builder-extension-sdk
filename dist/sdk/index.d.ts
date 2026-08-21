@@ -5,6 +5,7 @@
  * extension's own import, so both get one module instance and one channel.
  */
 import { type SlotEntry } from "./slots";
+import { type FrameSize } from "./ui";
 export type HostInfo = {
     version: string;
     protocol: number;
@@ -19,12 +20,17 @@ declare const builder: {
     main: (handler: () => void) => void;
     /**
      * A dialog has no registration to hang a loader on: it is opened by
-     * `ui.openDialog`, never registered. So it declares its document on its own.
-     * A panel and a settings page carry `load` on the item that shows them.
+     * `ui.openDialog`, never registered. The popover declares itself so Builder
+     * chrome can offer it from the installed extension list.
      */
     dialog: (entry: SlotEntry) => void;
-    /** The same, for the floating panel `ui.openPopover` opens. */
-    popover: (entry: SlotEntry) => void;
+    /**
+     * The same, for the floating panel `ui.openPopover` opens.
+     *
+     * Builder chrome opens a declared popover itself, so the size travels with
+     * the registration rather than with the open call. Omit it for the default.
+     */
+    popover: ({ load, ...size }: SlotEntry & FrameSize) => Promise<unknown>;
     /** One tab, registered from the entry frame and drawn by the host (Tier C). */
     leftPanel: {
         register: ({ load, ...registration }: import("./namespaces").LeftPanelRegistration) => Promise<unknown>;

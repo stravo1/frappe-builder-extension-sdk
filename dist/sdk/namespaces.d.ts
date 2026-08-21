@@ -14,6 +14,19 @@
  * copy of a rule on this side would be a second thing to keep in step.
  */
 import { type ActionHandler } from "./actions";
+/**
+ * A declaration. The host hears it from the entry frame only.
+ *
+ * A refusal is logged as well as returned, because a declaration at module scope
+ * is usually not awaited, and a silently rejected registration is a surface that
+ * never appears with nothing to explain it.
+ *
+ * A method this Builder does not have is a version gap, not a mistake. An
+ * extension ships on its own schedule, so it loses that one surface and keeps
+ * the rest, and the warning says which Builder is behind rather than blaming
+ * the extension.
+ */
+export declare const declare: (method: string, params?: unknown) => Promise<unknown>;
 export type ShowWhen = Record<string, unknown>;
 /** Resolves to the module holding a slot's document. */
 export type SlotLoader = () => Promise<unknown>;
