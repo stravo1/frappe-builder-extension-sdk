@@ -55,6 +55,7 @@ my-extension/
 ├── vite.config.js
 └── src/
     ├── main.ts
+    ├── icon.svg
     ├── panel/
     │   ├── Panel.vue
     │   └── index.ts
@@ -88,6 +89,7 @@ Put `manifest.json` beside `vite.config.js`.
   "name": "acme/image-tools",
   "label": "Image Tools",
   "version": "1.0.0",
+  "icon": "icon.svg",
   "capabilities": ["context.read", "block.read", "block.update"]
 }
 ```
@@ -95,6 +97,18 @@ Put `manifest.json` beside `vite.config.js`.
 Use `publisher/name` for `name`. Use lowercase letters, digits, and hyphens in each part.
 
 The `version` value can contain letters, digits, dots, plus signs, and hyphens.
+
+The `icon` value is optional. Builder shows it beside the extension in the Extensions panel. Follow
+these rules:
+
+- Name one SVG file, with no folder in front of it.
+- Put the file beside the entry, in `src/`.
+- Draw it square. Builder draws it in a box of 16 by 16 pixels, and a wider file gets empty space
+  above and below.
+- Give every shape its own color. Builder draws the file in an `<img>` element, so the file cannot
+  read the editor theme. Pick colors that stay readable on a light and a dark background.
+
+Builder draws its own plug glyph for an extension that ships no icon.
 
 Request only the capabilities that the extension uses. Builder rejects a protected method without its capability.
 
@@ -105,6 +119,7 @@ Request only the capabilities that the extension uses. Builder rejects a protect
 | `block.update` | `block.update` and bound property controls |
 | `block.insert` | `block.insert` |
 | `page.read` | `page.getBlocks` |
+| `page.write` | `page.attachScript`, `page.detachScript`, `page.listScripts` |
 | `token.write` | `tokens.set`, `tokens.unset` |
 | `ui.dialog` | `ui.openDialog`, `ui.closeDialog` |
 | `ui.popover` | `ui.openPopover`, `ui.closePopover` |
@@ -113,7 +128,7 @@ Request only the capabilities that the extension uses. Builder rejects a protect
 
 Surface registration, actions, extension state, `ui.toast`, and `host.info` need no capability.
 
-Builder rejects page writes in read-only mode. This rule covers `block.update`, `block.insert`, and token writes. It does not cover `data.*` or `schema.*`, which write to the site and not to the page.
+Builder rejects page writes in read-only mode. This rule covers `block.update`, `block.insert`, `page.write`, and token writes. It does not cover `data.*` or `schema.*`, which write to the site and not to the page.
 
 A capability grants the right to ask. For `data.*`, the user must also grant access to each doctype. Read [Site data](#site-data).
 
@@ -146,7 +161,8 @@ Set `builderUrl` to the Builder editor origin. A different origin creates a seco
 
 The plugin finds `src/main.ts` or `src/main.js`. It writes the production entry as `dist/main.js`.
 
-The plugin copies `manifest.json` into `dist`. It also puts generated CSS into the entry module.
+The plugin copies `manifest.json` into `dist`, and the icon the manifest names with it. It also puts
+generated CSS into the entry module.
 
 Dynamic imports stay as relative chunks. Do not change the relative Vite base.
 
@@ -507,6 +523,33 @@ Give a node a `key` to find it again. The result maps each `key` to the block it
 A tree can hold 200 blocks and go 20 levels deep. Builder checks the whole tree before it adds anything, so a refusal leaves the page unchanged.
 
 Builder does not select the new blocks. Each update or insert uses Builder's normal undo history.
+
+## Page client scripts
+
+A block change alone cannot make a published page do anything. Use `builder.page.attachScript` to put
+JavaScript or CSS on the page the user has open.
+
+```ts
+await builder.page.attachScript({ type: "CSS", script: "@keyframes fade-up { ... }" });
+await builder.page.attachScript({ type: "JavaScript", script: "document.querySelectorAll(...)" });
+```
+
+Read these rules before you use it:
+
+- The script runs on the published page. It does not run in the editor canvas. The editor shows what
+  a block is set to, and the page shows what it does.
+- One JavaScript script and one CSS script per extension per page. A second call of the same type
+  replaces the script, so send the whole file every time.
+- The first script of a type asks the user, and the prompt names the page. A later call to replace
+  the same script does not ask.
+- Builder rejects the call in read-only mode.
+
+Use `builder.page.listScripts()` to read the scripts this extension owns on the open page. Call it
+once at startup, and keep the answer, so a control that fires often does not attach on every change.
+
+Use `builder.page.detachScript(type)` to remove one. Uninstalling the extension removes them too.
+
+The user can read, edit, and delete every one of these scripts in the editor's Code tab.
 
 ## Extension state
 
