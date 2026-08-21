@@ -6,8 +6,8 @@ copied file here. Change it in Builder, then run this.
 
     python3 sync.py /path/to/apps/builder
 
-Everything the table below does not name — the install script, this script, the
-README, the skill itself, the license — belongs to this repository. Edit those here.
+Everything the table below does not name — this script, the README, the license —
+belongs to this repository. Edit those here.
 """
 
 import filecmp
@@ -23,7 +23,8 @@ COPIED = {
 	"frontend/extension-sdk/package.json": "package.json",
 	"frontend/extension-sdk/tsconfig.build.json": "tsconfig.build.json",
 	"frontend/extension-sdk/vite.config.mts": "vite.config.mts",
-	"docs/extensions/agent/README.md": "skills/build-builder-extension/references/extension-api.md",
+	"frontend/extension-sdk/skills": "skills",
+	"frontend/extension-sdk/install_extension.py": "install_extension.py",
 }
 
 # Not copied, because it documents a git install that Builder's own copy does not.
@@ -39,15 +40,33 @@ def checkout_directory(path: str) -> pathlib.Path:
 	return directory
 
 
+def tree(directory: pathlib.Path) -> dict[pathlib.PurePath, pathlib.Path]:
+	"""Every file under a directory, keyed by its path within it."""
+	return {
+		path.relative_to(directory): path
+		for path in directory.rglob("*")
+		if path.is_file() and "__pycache__" not in path.parts
+	}
+
+
 def is_changed(source: pathlib.Path, target: pathlib.Path) -> bool:
+	"""Compares bytes, and the whole tree.
+
+	`filecmp.dircmp` reads one level deep and compares files by stat, so it calls a
+	rewritten nested file unchanged. A sync that says "up to date" wrongly is worse
+	than no sync at all.
+	"""
 	if not source.exists():
 		raise SystemExit(f"{source} is missing. This mirror expects it")
 	if not target.exists():
 		return True
-	if source.is_dir():
-		comparison = filecmp.dircmp(source, target)
-		return bool(comparison.left_only or comparison.right_only or comparison.diff_files)
-	return not filecmp.cmp(source, target, shallow=False)
+	if not source.is_dir():
+		return not filecmp.cmp(source, target, shallow=False)
+
+	here, there = tree(source), tree(target)
+	if here.keys() != there.keys():
+		return True
+	return any(not filecmp.cmp(here[name], there[name], shallow=False) for name in here)
 
 
 def copy(source: pathlib.Path, target: pathlib.Path):

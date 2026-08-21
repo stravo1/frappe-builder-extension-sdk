@@ -111,8 +111,8 @@ cp -R skills/build-builder-extension ~/.claude/skills/
 Then ask the agent for a Builder extension. The agent reads
 `references/extension-api.md` for the capabilities, the surfaces, and the error codes.
 
-`references/extension-api.md` is a copy of `docs/extensions/agent/README.md` in
-frappe/builder. `sync.py` refreshes it.
+The skill ships inside the package, so an install puts it in `node_modules` too. Builder owns
+it, and `sync.py` copies it here.
 
 ## Versions
 
@@ -129,9 +129,9 @@ in this repository. Change it in Builder, then copy it across:
 python3 sync.py /path/to/apps/builder
 ```
 
-`sync.py` copies `src`, `tests`, `vite.js`, `package.json`, `tsconfig.build.json`,
-`vite.config.mts`, and the skill reference file. It copies nothing else. The install script,
-this README, `SKILL.md`, and the license belong to this repository. Edit those here.
+`sync.py` copies `src`, `tests`, `skills`, `install_extension.py`, `vite.js`, `package.json`,
+`tsconfig.build.json`, and `vite.config.mts`. It copies nothing else. This README and the
+license belong to this repository. Edit those here.
 
 When the SDK reaches npm, this repository stops. Point your `package.json` at the npm
 version. The copy then goes stale with no effect on you.

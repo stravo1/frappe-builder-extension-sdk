@@ -12,7 +12,9 @@
 	"files": [
 		"dist",
 		"src",
+		"skills",
 		"vite.js",
+		"install_extension.py",
 		"README.md"
 	],
 	"exports": {

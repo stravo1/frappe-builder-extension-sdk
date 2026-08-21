@@ -25,7 +25,9 @@ and naming.
 ## Create the project
 
 1. Make `manifest.json`, `package.json`, `vite.config.js`, and `src/main.ts`.
-2. Install the SDK: `npm install --save-dev github:stravo1/frappe-builder-extension-sdk`.
+2. Install the SDK: `npm install --save-dev frappe-builder-extension-sdk`. The package is
+   not on npm yet, so until it lands, install it from git:
+   `npm install --save-dev github:stravo1/frappe-builder-extension-sdk`.
 3. Install `vite`, `vue`, and `@vitejs/plugin-vue` when the feature needs a frame.
 4. Add `builderExtension({ builderUrl })` to the Vite plugin list.
 
@@ -77,12 +79,14 @@ Builder holds one development extension per session, and a reload drops it.
 
 ## Install it on a site
 
-Builder has no install API yet. Use `install_extension.py` from this repository:
+Builder has no install API yet. Use `install_extension.py`, which ships with the SDK:
 
 ```sh
 npm run build
 cd /path/to/bench/sites
-../env/bin/python /path/to/install_extension.py builder.localhost /path/to/my-extension
+../env/bin/python \
+  /path/to/my-extension/node_modules/frappe-builder-extension-sdk/install_extension.py \
+  builder.localhost /path/to/my-extension
 ```
 
 Run it again after every build.
