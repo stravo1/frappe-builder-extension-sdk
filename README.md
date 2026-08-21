@@ -99,6 +99,21 @@ extension wrote, so read the list first.
 The script installs `dist/` after a build. If the directory has no `dist/`, it installs
 `src/`, which works for an extension of plain JavaScript.
 
+## Agent skill
+
+`skills/build-builder-extension/` is a skill for Claude Code and other agents. It carries the
+workflow, and the whole API as a reference file. Copy it into your skills directory:
+
+```sh
+cp -R skills/build-builder-extension ~/.claude/skills/
+```
+
+Then ask the agent for a Builder extension. The agent reads
+`references/extension-api.md` for the capabilities, the surfaces, and the error codes.
+
+`references/extension-api.md` is a copy of `docs/extensions/agent/README.md` in
+frappe/builder. `sync.py` refreshes it.
+
 ## Versions
 
 The major version of this package is the protocol version it speaks. Version
@@ -114,9 +129,9 @@ in this repository. Change it in Builder, then copy it across:
 python3 sync.py /path/to/apps/builder
 ```
 
-`sync.py` copies `src`, `tests`, `vite.js`, `package.json`, `tsconfig.build.json`, and
-`vite.config.mts`. It copies nothing else. The install script, this README, and the
-license belong to this repository. Edit those here.
+`sync.py` copies `src`, `tests`, `vite.js`, `package.json`, `tsconfig.build.json`,
+`vite.config.mts`, and the skill reference file. It copies nothing else. The install script,
+this README, `SKILL.md`, and the license belong to this repository. Edit those here.
 
 When the SDK reaches npm, this repository stops. Point your `package.json` at the npm
 version. The copy then goes stale with no effect on you.
