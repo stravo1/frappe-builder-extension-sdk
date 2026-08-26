@@ -43,7 +43,7 @@ export type LeftPanelRegistration = {
     label: string;
     icon: string;
     /** What the tab's frame paints. Declared here because the tab is what shows it. */
-    load?: SlotLoader;
+    component?: SlotLoader;
     before?: string;
     after?: string;
     showWhen?: ShowWhen;
@@ -80,7 +80,7 @@ export type SettingsRegistration = {
     title: string;
     icon: string;
     /** What the settings frame paints. Declared here, because this item shows it. */
-    load?: SlotLoader;
+    component?: SlotLoader;
     before?: string;
     after?: string;
 };
@@ -131,7 +131,7 @@ export type ItemPatch = {
     badge?: string | number | null;
 };
 export declare const leftPanel: {
-    register: ({ load, ...registration }: LeftPanelRegistration) => Promise<unknown>;
+    register: ({ component, ...registration }: LeftPanelRegistration) => Promise<unknown>;
     unregister: (name: string) => Promise<unknown>;
     update: (name: string, patch: ItemPatch) => Promise<unknown>;
 };
@@ -153,7 +153,7 @@ export declare const properties: {
     update: (name: string, patch: ItemPatch) => Promise<unknown>;
 };
 export declare const settings: {
-    registerItem: ({ load, ...registration }: SettingsRegistration) => Promise<unknown>;
+    registerItem: ({ component, ...registration }: SettingsRegistration) => Promise<unknown>;
     unregisterItem: (name: string) => Promise<unknown>;
     update: (name: string, patch: ItemPatch) => Promise<unknown>;
 };

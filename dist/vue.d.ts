@@ -52,15 +52,27 @@ export declare const useBuilderContext: (fields: ContextField[]) => {
 /** One of this extension's own actions, as a function a template can call. */
 export declare const useAction: (name: string) => (context?: Record<string, unknown>) => Promise<unknown>;
 /**
- * A component as a slot module, which is the whole contract the SDK asks for.
+ * Mounts a component, for every slot this extension registers.
+ *
+ * ```js
+ * builder.use(vueAdapter);
+ * ```
+ *
+ * Register it once in the entry. The SDK then mounts the component a slot's
+ * `component()` default-exports, and unmounts it when the frame goes away.
+ * `props` reaches the component as its root props, so a dialog opened with
+ * `ui.openDialog({ props })` reads them as ordinary props.
+ */
+export declare const vueAdapter: (component: unknown, element: HTMLElement, props?: Record<string, unknown>) => () => void;
+/**
+ * A component as a slot module, for a slot that mounts itself.
  *
  * ```js
  * export const { mount } = defineSlot(Panel);
  * ```
  *
- * The SDK calls `mount`, and the function it returns runs when the frame goes
- * away. `props` reaches the component as its root props, so a dialog opened with
- * `ui.openDialog({ props })` reads them as ordinary props.
+ * `vueAdapter` covers the ordinary case. Use this where one slot needs its own
+ * mounting, or where the extension registers no adapter at all.
  */
 export declare const defineSlot: (component: Component) => {
     mount: (element: HTMLElement, props?: Record<string, unknown>) => () => void;

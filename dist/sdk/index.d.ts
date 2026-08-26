@@ -4,7 +4,7 @@
  * The shell loads this file, and the import map resolves the same URL for the
  * extension's own import, so both get one module instance and one channel.
  */
-import { type SlotEntry } from "./slots";
+import { type Mounter, type SlotEntry } from "./slots";
 import { type FrameSize } from "./ui";
 export type HostInfo = {
     version: string;
@@ -19,21 +19,31 @@ declare const builder: {
      */
     main: (handler: () => void) => void;
     /**
-     * A dialog has no registration to hang a loader on: it is opened by
-     * `ui.openDialog`, never registered. The popover declares itself so Builder
-     * chrome can offer it from the installed extension list.
+     * Names the layer that mounts a component, once for this extension.
+     *
+     * `frappe-builder-extension-sdk/vue` exports `vueAdapter`. Without one, a
+     * slot's module has to export `mount(element, props)` itself.
      */
-    dialog: (entry: SlotEntry) => void;
+    use: (adapter: Mounter) => void;
+    /**
+     * The document `ui.openDialog` opens. Builder tells nobody: a dialog is
+     * opened by a call, so this registration stays in the frame that made it.
+     */
+    dialog: {
+        register: (entry: SlotEntry) => void;
+    };
     /**
      * The same, for the floating panel `ui.openPopover` opens.
      *
      * Builder chrome opens a declared popover itself, so the size travels with
      * the registration rather than with the open call. Omit it for the default.
      */
-    popover: ({ load, ...size }: SlotEntry & FrameSize) => Promise<unknown>;
+    popover: {
+        register: ({ component, ...size }: SlotEntry & FrameSize) => Promise<unknown>;
+    };
     /** One tab, registered from the entry frame and drawn by the host (Tier C). */
     leftPanel: {
-        register: ({ load, ...registration }: import("./namespaces").LeftPanelRegistration) => Promise<unknown>;
+        register: ({ component, ...registration }: import("./namespaces").LeftPanelRegistration) => Promise<unknown>;
         unregister: (name: string) => Promise<unknown>;
         update: (name: string, patch: import("./namespaces").ItemPatch) => Promise<unknown>;
     };
@@ -58,7 +68,7 @@ declare const builder: {
     };
     /** One page in the settings dialog, and the document it loads. */
     settings: {
-        registerItem: ({ load, ...registration }: import("./namespaces").SettingsRegistration) => Promise<unknown>;
+        registerItem: ({ component, ...registration }: import("./namespaces").SettingsRegistration) => Promise<unknown>;
         unregisterItem: (name: string) => Promise<unknown>;
         update: (name: string, patch: import("./namespaces").ItemPatch) => Promise<unknown>;
     };

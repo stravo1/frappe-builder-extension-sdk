@@ -14,10 +14,17 @@
  */
 import type { ExtensionSlot } from "../types";
 export type VisualSlot = Exclude<ExtensionSlot, "main">;
-/** `load` resolves to the module holding the slot's document. */
+/** `component` resolves to the module holding the slot's document. */
 export type SlotEntry = {
-    load: () => Promise<unknown>;
+    component: () => Promise<unknown>;
 };
+/**
+ * Turns a component into DOM, and answers with the cleanup for it.
+ *
+ * The SDK ships no framework, so an extension hands one of these over. It runs
+ * in the author's bundle, in this frame, and never crosses a port.
+ */
+export type Mounter = (component: unknown, element: HTMLElement, props: Record<string, unknown>) => (() => void) | void;
 /**
  * Set before the entry module is imported, so a registration made while that
  * module evaluates already knows which frame it is running in.
@@ -26,6 +33,13 @@ export declare const setActiveSlot: (name: ExtensionSlot) => ExtensionSlot;
 export declare const getActiveSlot: () => ExtensionSlot | null;
 export declare const registerMain: (handler: () => void) => void;
 export declare const registerSlot: (slot: VisualSlot, entry: SlotEntry) => void;
+/**
+ * Names the layer that mounts a component, once for the whole extension.
+ *
+ * `frappe-builder-extension-sdk/vue` exports one. A second call is refused: two
+ * would give "how a component becomes DOM" two owners.
+ */
+export declare const use: (adapter: Mounter) => void;
 /**
  * Runs only the slot this frame was opened for.
  *
