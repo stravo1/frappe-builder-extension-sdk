@@ -1,50 +1,50 @@
-import { createPortChannel as E, ChannelCallError as A } from "./transport/createPortChannel.js";
-import { PROTOCOL_VERSION as C } from "./types.js";
-const w = /* @__PURE__ */ new Map(), T = (e, t) => w.set(e, t), I = (e) => w.delete(e), M = (e) => {
-  const { action: t, context: o } = e ?? {}, r = w.get(String(t));
+import { createPortChannel as T, ChannelCallError as I } from "./transport/createPortChannel.js";
+import { PROTOCOL_VERSION as M } from "./types.js";
+const m = /* @__PURE__ */ new Map(), L = (e, t) => m.set(e, t), B = (e) => m.delete(e), R = (e) => {
+  const { action: t, context: o } = e ?? {}, r = m.get(String(t));
   if (!r) throw new Error(`This extension registered no action named "${t}"`);
   return r(o ?? {});
-}, S = "app";
-let f = null, c = null;
-const h = /* @__PURE__ */ new Map(), L = (e) => c = e, m = () => c, k = (e, t) => {
+}, _ = "app";
+let f = null, i = null;
+const h = /* @__PURE__ */ new Map(), N = (e) => i = e, w = () => i, O = (e, t) => {
   if (t) throw new Error(`This extension already registered its "${e}" slot`);
-}, B = (e) => {
-  k("main", f !== null), f = e;
+}, j = (e) => {
+  O("main", f !== null), f = e;
 }, u = (e, t) => {
-  k(e, h.has(e)), h.set(e, t);
+  O(e, h.has(e)), h.set(e, t);
 };
-let _;
-const R = (e, t) => {
+let x;
+const q = (e, t) => {
   if (typeof e.mount != "function")
     throw new Error(
       `The module loaded for the "${t}" slot exports no "mount(element, props)". Export one, or wrap a component with "frappe-builder-extension-sdk/vue".`
     );
-}, N = async (e = {}) => {
-  if (c === "main") return f?.();
-  const t = c && h.get(c);
-  if (!t) return void console.warn(`This extension registered no "${c}" slot`);
-  const o = document.getElementById(S);
-  if (!o) throw new Error(`The extension shell has no #${S} to mount into`);
+}, F = async (e = {}) => {
+  if (i === "main") return f?.();
+  const t = i && h.get(i);
+  if (!t) return void console.warn(`This extension registered no "${i}" slot`);
+  const o = document.getElementById(_);
+  if (!o) throw new Error(`The extension shell has no #${_} to mount into`);
   const r = await t.load();
-  R(r, c), _ = r.mount?.(o, e), window.addEventListener("pagehide", () => _?.(), { once: !0 });
-}, j = new URL(import.meta.url).origin;
+  q(r, i), x = r.mount?.(o, e), window.addEventListener("pagehide", () => x?.(), { once: !0 });
+}, H = new URL(import.meta.url).origin;
 let a = null, y = {};
 const d = () => {
   if (!a) throw new Error("The Builder SDK is not connected yet");
   return a;
-}, q = () => y, F = (e) => typeof e == "object" && e !== null && e.type === "connect" && e.v === C, x = (e) => document.documentElement.setAttribute("data-theme", String(e)), H = async (e, t) => {
-  a = E(t), a.listen("theme", x), a.handle("action.invoke", M), x(e.theme), y = e.props ?? {}, L(e.slot), await import(
+}, J = () => y, U = (e) => typeof e == "object" && e !== null && e.type === "connect" && e.v === M, D = (e) => document.documentElement.setAttribute("data-theme", String(e)), G = async (e, t) => {
+  a = T(t), a.listen("theme", D), a.handle("action.invoke", R), D(e.theme), y = e.props ?? {}, N(e.slot), await import(
     /* @vite-ignore */
     e.entry
-  ), await N(y), a.emit("slot.ready");
-}, J = () => {
+  ), await F(y), a.emit("slot.ready");
+}, K = () => {
   window.addEventListener("message", (e) => {
-    e.origin === j && (a || !F(e.data) || !e.ports[0] || H(e.data, e.ports[0]).catch(
+    e.origin === H && (a || !U(e.data) || !e.ports[0] || G(e.data, e.ports[0]).catch(
       (t) => console.error(`[builder] the "${e.data.slot}" frame could not start`, t)
     ));
   });
 }, n = (e, t) => d().call(e, t), l = (e, t) => {
-  if (m() !== "main") return Promise.resolve();
+  if (w() !== "main") return Promise.resolve();
   const o = n(e, t);
   return o.catch((r) => {
     if (r.code === "unknown_method") {
@@ -53,29 +53,36 @@ const d = () => {
     }
     console.error(`[builder] "${e}" was refused`, r);
   }), o;
-}, U = {
+}, P = (e, t) => (w() === "main" && L(e, t), l("actions.register", { name: e })), v = (e, t = "") => {
+  if (typeof e.action != "function") return e;
+  const o = `${t}${e.name}`;
+  return P(o, e.action), { ...e, action: o };
+}, k = (e, t) => t.map((o) => v(o, `${e}.`)), V = {
   register: ({ load: e, ...t }) => (e && u("panel", { load: e }), l("leftPanel.register", t)),
   unregister: (e) => n("leftPanel.unregister", { name: e }),
   update: (e, t) => n("leftPanel.update", { name: e, patch: t })
-}, G = {
-  register: (e) => l("toolbar.register", e),
+}, z = {
+  register: (e) => l("toolbar.register", v(e)),
   unregister: (e) => n("toolbar.unregister", { name: e }),
   update: (e, t) => n("toolbar.update", { name: e, patch: t })
-}, K = {
-  register: (e) => l("contextMenu.register", e),
+}, Q = {
+  register: (e) => l("contextMenu.register", v(e)),
   unregister: (e) => n("contextMenu.unregister", { name: e }),
   update: (e, t) => n("contextMenu.update", { name: e, patch: t })
-}, V = {
-  registerSection: (e) => l("properties.registerSection", e),
+}, W = {
+  registerSection: (e) => l("properties.registerSection", {
+    ...e,
+    controls: k(e.name, e.controls)
+  }),
   unregisterSection: (e) => n("properties.unregisterSection", { name: e }),
   /** Replaces the whole list, for a control list that depends on the extension's own state. */
-  setControls: (e, t) => n("properties.setControls", { name: e, controls: t }),
+  setControls: (e, t) => n("properties.setControls", { name: e, controls: k(e, t) }),
   update: (e, t) => n("properties.update", { name: e, patch: t })
-}, z = {
+}, X = {
   registerItem: ({ load: e, ...t }) => (e && u("settings", { load: e }), l("settings.registerItem", t)),
   unregisterItem: (e) => n("settings.unregisterItem", { name: e }),
   update: (e, t) => n("settings.update", { name: e, patch: t })
-}, Q = {
+}, Y = {
   /** The whole snapshot, once. For startup. */
   get: () => n("context.get"),
   /**
@@ -88,13 +95,13 @@ const d = () => {
    */
   subscribe: (e, t) => {
     let o = "";
-    const r = d().listen("context", (O) => {
-      const v = O, b = JSON.stringify(e.map(($) => v[$]));
-      b !== o && (o = b, t(v));
+    const r = d().listen("context", (E) => {
+      const b = E, S = JSON.stringify(e.map((C) => b[C]));
+      S !== o && (o = S, t(b));
     });
     return n("context.subscribe", { fields: e }), r;
   }
-}, W = {
+}, Z = {
   /** One block and its subtree, as a plain object. The id comes from the context or a menu row. */
   get: (e) => n("block.get", { blockId: e }),
   /** Refused without `block.update`, and refused again while the page is read-only. */
@@ -111,7 +118,7 @@ const d = () => {
    * the selection stays the user's.
    */
   insert: (e, t, o) => n("block.insert", { parentId: e, block: t, index: o })
-}, X = {
+}, ee = {
   /**
    * The tree the canvas holds, as a list of roots. A node carries its own
    * `children`, so walk it to reach every block.
@@ -137,13 +144,13 @@ const d = () => {
   detachScript: (e) => n("page.detachScript", { type: e }),
   /** This extension's own scripts on the open page, and nobody else's. */
   listScripts: () => n("page.listScripts")
-}, Y = {
+}, te = {
   /** Everything this extension has stored. Per browser and per user. */
   get: () => n("state.get"),
   /** Merged at the top level. Never removes a key the patch leaves unmentioned. */
   set: (e) => n("state.set", { state: e }),
   unset: (e) => n("state.unset", { key: e })
-}, Z = {
+}, ne = {
   /**
    * Upserts by `key`, and never deletes what the call leaves unmentioned.
    *
@@ -152,7 +159,7 @@ const d = () => {
    */
   set: (e) => n("tokens.set", { tokens: e }),
   unset: (e) => n("tokens.unset", { key: e })
-}, i = {
+}, c = {
   /**
    * Asks the user for access to one doctype, in a Builder dialog.
    *
@@ -185,7 +192,7 @@ const d = () => {
   update: (e, t, o) => n("data.update", { doctype: e, name: t, doc: o }),
   /** Needs its own `delete` grant: losing a record is not changing one. */
   delete: (e, t) => n("data.delete", { doctype: e, name: t })
-}, ee = {
+}, oe = {
   /**
    * A new custom doctype, owned by this extension.
    *
@@ -212,29 +219,29 @@ const d = () => {
   deleteDoctype: (e) => n("schema.deleteDoctype", { doctype: e }),
   /** Every doctype this extension made, and whether each still exists. */
   listDoctypes: () => n("schema.listDoctypes")
-}, te = {
+}, re = {
   /**
    * The handler stays in this frame, and the host learns only the name.
    *
    * Only the entry frame holds and names it, so the host always calls the frame
    * that outlives the others.
    */
-  register: (e, t) => m() !== "main" ? Promise.resolve() : (T(e, t), l("actions.register", { name: e })),
-  unregister: (e) => m() !== "main" ? Promise.resolve() : (I(e), n("actions.unregister", { name: e })),
+  register: (e, t) => P(e, t),
+  unregister: (e) => w() !== "main" ? Promise.resolve() : (B(e), n("actions.unregister", { name: e })),
   /** Runs an action this extension owns, from any of its frames. */
   run: (e, t) => n("actions.run", { name: e, context: t })
-}, g = (e, t = "unsupported_request") => new A({ message: `[builder] ${e}`, code: t }), P = (e) => e ? JSON.parse(JSON.stringify(e)) : {}, s = (e, t, o) => {
+}, g = (e, t = "unsupported_request") => new I({ message: `[builder] ${e}`, code: t }), A = (e) => e ? JSON.parse(JSON.stringify(e)) : {}, s = (e, t, o) => {
   const r = e[t];
   if (typeof r != "string" || !r)
     throw g(`${o} needs a "${t}".`, "invalid_params");
   return r;
-}, ne = (e) => {
+}, se = (e) => {
   const t = e.fieldname;
   if (typeof t == "string") return { [t]: e.value };
   if (!t || typeof t != "object")
     throw g('frappe.client.set_value needs a "fieldname".', "invalid_params");
   return t;
-}, oe = (e) => ({
+}, ce = (e) => ({
   fields: e.fields,
   filters: e.filters,
   orFilters: e.or_filters,
@@ -242,57 +249,57 @@ const d = () => {
   groupBy: e.group_by,
   start: e.limit_start,
   pageLength: e.limit_page_length
-}), D = {
+}), $ = {
   "frappe.client.get_list": (e) => {
     if (e.parent)
       throw g('"parent" is not supported: grant the parent doctype instead.');
-    return i.getList(s(e, "doctype", "frappe.client.get_list"), oe(e));
+    return c.getList(s(e, "doctype", "frappe.client.get_list"), ce(e));
   },
-  "frappe.client.get_count": (e) => i.getCount(
+  "frappe.client.get_count": (e) => c.getCount(
     s(e, "doctype", "frappe.client.get_count"),
     e.filters
   ),
-  "frappe.client.get": (e) => i.getDoc(
+  "frappe.client.get": (e) => c.getDoc(
     s(e, "doctype", "frappe.client.get"),
     s(e, "name", "frappe.client.get")
   ),
   // the doctype travels inside the document here, not beside it
   "frappe.client.insert": (e) => {
-    const t = P(e.doc);
-    return i.insert(s(t, "doctype", "frappe.client.insert"), t);
+    const t = A(e.doc);
+    return c.insert(s(t, "doctype", "frappe.client.insert"), t);
   },
-  "frappe.client.set_value": (e) => i.update(
+  "frappe.client.set_value": (e) => c.update(
     s(e, "doctype", "frappe.client.set_value"),
     s(e, "name", "frappe.client.set_value"),
-    ne(e)
+    se(e)
   ),
-  "frappe.client.delete": (e) => i.delete(
+  "frappe.client.delete": (e) => c.delete(
     s(e, "doctype", "frappe.client.delete"),
     s(e, "name", "frappe.client.delete")
   )
-}, re = (e) => {
-  const t = e?.url ?? "", o = D[t];
+}, ie = (e) => {
+  const t = e?.url ?? "", o = $[t];
   if (!o)
     throw g(
-      `no route for "${t}". An extension reaches site data through a doctype it was granted, so a resource may name only: ${Object.keys(D).join(", ")}.`
+      `no route for "${t}". An extension reaches site data through a doctype it was granted, so a resource may name only: ${Object.keys($).join(", ")}.`
     );
-  return o(P(e.params));
-}, p = (e, t) => d().call(e, t), se = (e = {}) => p("ui.openDialog", e), ie = (e) => p("ui.closeDialog", { result: e }), ce = (e = {}) => p("ui.openPopover", e), ae = (e) => p("ui.closePopover", { result: e }), le = (e, t = {}) => p("ui.toast", { message: e, ...t }), pe = {
-  openDialog: se,
-  closeDialog: ie,
-  openPopover: ce,
-  closePopover: ae,
-  toast: le,
+  return o(A(e.params));
+}, p = (e, t) => d().call(e, t), ae = (e = {}) => p("ui.openDialog", e), le = (e) => p("ui.closeDialog", { result: e }), pe = (e = {}) => p("ui.openPopover", e), ue = (e) => p("ui.closePopover", { result: e }), de = (e, t = {}) => p("ui.toast", { message: e, ...t }), ge = {
+  openDialog: ae,
+  closeDialog: le,
+  openPopover: pe,
+  closePopover: ue,
+  toast: de,
   /** What the open call was made with. Read by the document the slot mounted. */
-  props: () => q()
-}, ge = {
+  props: () => J()
+}, ye = {
   /**
    * Imperative startup work, in the hidden entry frame only.
    *
    * Registrations do not belong here. They are declarations, and every frame
    * needs to read them, so they go at module scope.
    */
-  main: (e) => B(e),
+  main: (e) => j(e),
   /**
    * A dialog has no registration to hang a loader on: it is opened by
    * `ui.openDialog`, never registered. The popover declares itself so Builder
@@ -307,27 +314,27 @@ const d = () => {
    */
   popover: ({ load: e, ...t }) => (u("popover", { load: e }), l("popover.register", t)),
   /** One tab, registered from the entry frame and drawn by the host (Tier C). */
-  leftPanel: U,
+  leftPanel: V,
   /** A descriptor. Builder draws the button and posts the action back (Tier A). */
-  toolbar: G,
+  toolbar: z,
   /** A row in the block menu. Its rule is answered for the block under the cursor. */
-  contextMenu: K,
+  contextMenu: Q,
   /** Tier B. A list naming Builder's own controls, which the host renders. */
-  properties: V,
+  properties: W,
   /** One page in the settings dialog, and the document it loads. */
-  settings: z,
+  settings: X,
   /** The editor snapshot: read it once, or name the fields to be told about. */
-  context: Q,
+  context: Y,
   /** One block, by the id a menu row or the snapshot handed over. */
-  block: W,
+  block: Z,
   /** The whole tree, when one block is not enough. */
-  page: X,
+  page: ee,
   /** A modal, and a draggable popover, the host draws around this extension's own document. */
-  ui: pe,
+  ui: ge,
   /** This extension's own storage. No capability, because Builder never reads it. */
-  state: Y,
+  state: te,
   /** Real `Builder Token` rows, so they reach the published site too. */
-  tokens: Z,
+  tokens: ne,
   /**
    * Site data. Ask the user for a doctype first: nothing here is granted at install.
    *
@@ -343,17 +350,17 @@ const d = () => {
    * any Frappe app. The grant still comes first: a resource errors with
    * `grant_required` until `requestAccess` has been answered.
    */
-  data: { ...i, fetcher: re },
+  data: { ...c, fetcher: ie },
   /** Doctypes this extension creates. The user is asked before a table is made or dropped. */
-  schema: ee,
+  schema: oe,
   /** The functions this extension owns. A descriptor names one, the host calls it. */
-  actions: te,
+  actions: re,
   host: {
     /** Which Builder this extension landed in. An extension ships on its own schedule. */
     info: () => d().call("host.info")
   }
 };
-J();
+K();
 export {
-  ge as default
+  ye as default
 };

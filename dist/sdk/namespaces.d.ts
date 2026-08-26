@@ -27,6 +27,14 @@ import { type ActionHandler } from "./actions";
  * the extension.
  */
 export declare const declare: (method: string, params?: unknown) => Promise<unknown>;
+/**
+ * A function, or the name of an action registered elsewhere.
+ *
+ * A function cannot cross the port, so the SDK holds it in this frame and sends
+ * the item's own name. A string names an action another call registered, which
+ * is what a frame other than the entry one has to use.
+ */
+export type ActionRef = string | ActionHandler;
 export type ShowWhen = Record<string, unknown>;
 /** Resolves to the module holding a slot's document. */
 export type SlotLoader = () => Promise<unknown>;
@@ -46,8 +54,8 @@ export type ToolbarRegistration = {
     icon: string;
     label?: string;
     tooltip?: string;
-    /** The name of an action this extension registered. */
-    action?: string;
+    /** A function, or the name of an action this extension registered. */
+    action?: ActionRef;
     badge?: string | number | null;
     before?: string;
     after?: string;
@@ -57,8 +65,8 @@ export type ToolbarRegistration = {
 export type ContextMenuRegistration = {
     name: string;
     label: string;
-    /** The name of an action this extension registered. A row with none does nothing. */
-    action: string;
+    /** A function, or the name of an action this extension registered. */
+    action: ActionRef;
     /** Which menu the row belongs to. Fixed at registration. Defaults to "both". */
     menu?: "canvas" | "layers" | "both";
     before?: string;
@@ -92,7 +100,7 @@ export type Control = {
     /** The extension's own value, when no block property holds it (B4). */
     value?: unknown;
     /** An action to invoke after a bound write, or on every change when unbound. */
-    action?: string;
+    action?: ActionRef;
     /** For "select" and "toggle". A toggle option may carry an icon. */
     options?: Array<{
         label: string;
