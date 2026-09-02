@@ -1,4 +1,4 @@
-const e = [
+const e = 1, t = [
   "context.read",
   "block.read",
   "block.update",
@@ -10,8 +10,8 @@ const e = [
   "ui.popover",
   "data.access",
   "schema.write"
-], t = 1;
+];
 export {
-  e as CAPABILITIES,
-  t as PROTOCOL_VERSION
+  t as CAPABILITIES,
+  e as PROTOCOL_VERSION
 };

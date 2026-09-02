@@ -17,7 +17,10 @@ import sys
 
 # What Builder owns: its path in the checkout, and where it lands here.
 COPIED = {
+	"frontend/extension-sdk/bin": "bin",
+	"frontend/extension-sdk/package.js": "package.js",
 	"frontend/extension-sdk/src": "src",
+	"frontend/extension-sdk/templates": "templates",
 	"frontend/extension-sdk/tests": "tests",
 	"frontend/extension-sdk/vite.js": "vite.js",
 	"frontend/extension-sdk/package.json": "package.json",

@@ -4,6 +4,7 @@
  * Domain types first, then the shapes that cross a port. `transport/messages.ts`
  * holds the guards over these shapes.
  */
+import { CAPABILITIES, PROTOCOL_VERSION } from "./protocol.js";
 /** The five documents an extension can have. The host names one at the handshake. */
 export type ExtensionSlot = "main" | "panel" | "dialog" | "popover" | "settings";
 /**
@@ -25,9 +26,19 @@ export type OpenTarget = {
     kind: "leftPanel";
     name: string;
 };
-/** Every capability the bridge gates a method by. Mirrors CAPABILITIES in builder_extension.py. */
-export declare const CAPABILITIES: readonly ["context.read", "block.read", "block.update", "block.insert", "page.read", "page.write", "token.write", "ui.dialog", "ui.popover", "data.access", "schema.write"];
+/** Every capability the bridge gates a method by. Mirrors the server protocol. */
+export { CAPABILITIES, PROTOCOL_VERSION };
 export type Capability = (typeof CAPABILITIES)[number];
+export type ExtensionManifest = {
+    v: typeof PROTOCOL_VERSION;
+    name: string;
+    label: string;
+    description: string;
+    version: string;
+    entry: "main.js";
+    icon?: string;
+    capabilities: Capability[];
+};
 /** One of this user's installations, as get_enabled_extensions returns it. */
 export type InstalledExtension = {
     name: string;
@@ -115,7 +126,6 @@ export type EditorContext = {
  * Extensions ship on their own schedule and will run against an older Builder,
  * so every message names the version it was written for.
  */
-export declare const PROTOCOL_VERSION = 1;
 /**
  * The one message sent on the window, with the port transferred beside it.
  * Everything after this runs on the port.

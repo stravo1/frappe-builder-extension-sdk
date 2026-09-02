@@ -44,6 +44,21 @@ export default defineConfig({
 The plugin needs a `manifest.json` beside the config, and an entry at
 `src/main.js` or `src/main.ts`.
 
+Use the version 1 manifest shape. The build rejects missing and unknown fields.
+
+```json
+{
+	"v": 1,
+	"name": "acme/icons",
+	"label": "Icon Library",
+	"description": "Add an icon library to Builder.",
+	"version": "1.2.0",
+	"entry": "main.js",
+	"icon": "icon.svg",
+	"capabilities": ["context.read", "block.update"]
+}
+```
+
 ### One file
 
 An extension builds to one file. The editor reads `main.js` and posts the code
@@ -100,6 +115,39 @@ builder.popover.register({ component: () => import("./Popover.vue") });
 ```
 
 `vue` is an optional peer dependency. Install it only if you write slots in Vue.
+
+## Package a release
+
+Builder Hub reads four files from the repository root: `manifest.json`, `README.md`,
+`LICENSE`, and `versions.json`. Map every published version to its minimum Builder
+extension protocol in `versions.json`:
+
+```json
+{
+	"1.0.0": 1,
+	"1.2.0": 1
+}
+```
+
+Build, then create the release package:
+
+```sh
+npm run build
+npx builder-extension package
+```
+
+The command validates the repository, manifest, built files, and package limits. A
+package contains only `manifest.json`, `main.js`, and the optional SVG icon. The command
+writes `release/acme-icons-1.2.0.builderext` and prints its size and SHA-256.
+
+Create a GitHub release whose tag exactly matches the manifest version, without a
+`v` prefix, and attach that file. Copy the workflow shipped at
+`templates/github/workflows/release.yml` to `.github/workflows/release.yml` to build,
+package, and create the release whenever a version tag is pushed.
+
+The first release and repository need Builder Hub review. For a later release, update
+both `manifest.json` and `versions.json`, commit them, and push the exact version tag.
+Builder Hub detects and validates the new GitHub release without another listing submission.
 
 ## Run your extension
 
@@ -188,9 +236,9 @@ in this repository. Change it in Builder, then copy it across:
 python3 sync.py /path/to/apps/builder
 ```
 
-`sync.py` copies `src`, `tests`, `skills`, `install_extension.py`, `vite.js`, `package.json`,
-`tsconfig.build.json`, and `vite.config.mts`. It copies nothing else. This README and the
-license belong to this repository. Edit those here.
+`sync.py` copies `bin`, `src`, `templates`, `tests`, `skills`, `install_extension.py`,
+`package.js`, `vite.js`, `package.json`, `tsconfig.build.json`, and `vite.config.mts`. It
+copies nothing else. This README and the license belong to this repository. Edit those here.
 
 When the SDK reaches npm, this repository stops. Point your `package.json` at the npm
 version. The copy then goes stale with no effect on you.

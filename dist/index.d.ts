@@ -13,4 +13,4 @@ export { default, type HostInfo } from "./sdk/index";
 export type { BlockPatch, Control, ControlName, ContextField, ContextHandler, ContextMenuRegistration, ExtensionToken, ItemPatch, LeftPanelRegistration, NewBlock, PropertiesRegistration, SettingsRegistration, ShowWhen, SlotLoader, ToolbarRegistration, } from "./sdk/namespaces";
 export type { FrameOptions, ToastOptions, ToastType } from "./sdk/ui";
 export type { SlotEntry } from "./sdk/slots";
-export type { Breakpoint, EditorContext, EditorSelection } from "./types";
+export type { Breakpoint, Capability, EditorContext, EditorSelection, ExtensionManifest } from "./types";
