@@ -137,6 +137,14 @@ It installs for `Administrator`. Name another user with `--user`:
 Run it again after every build. The script hashes the files, and a new hash makes the
 editor mount the new entry.
 
+The script also reads `README.md` from your extension directory and stores it on the
+installation, so the Extensions panel shows it. The file is never copied into the
+package: a built extension is `main.js`, `manifest.json` and one icon, and nothing else.
+
+The panel shows every capability your manifest asks for, and lets the user turn one
+off. A capability the user turned off is refused the way one you never asked for is,
+so read the error before you assume a bug.
+
 To remove the extension for one user:
 
 ```sh
