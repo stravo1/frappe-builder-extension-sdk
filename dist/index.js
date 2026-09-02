@@ -85,14 +85,17 @@ const g = () => {
   unregister: (e) => n("leftPanel.unregister", { name: e }),
   update: (e, t) => n("leftPanel.update", { name: e, patch: t })
 }, ee = {
+  register: (e) => a("open.register", e),
+  unregister: () => n("open.unregister")
+}, te = {
   register: (e) => a("toolbar.register", b(e)),
   unregister: (e) => n("toolbar.unregister", { name: e }),
   update: (e, t) => n("toolbar.update", { name: e, patch: t })
-}, te = {
+}, ne = {
   register: (e) => a("contextMenu.register", b(e)),
   unregister: (e) => n("contextMenu.unregister", { name: e }),
   update: (e, t) => n("contextMenu.update", { name: e, patch: t })
-}, ne = {
+}, oe = {
   registerSection: (e) => a("properties.registerSection", {
     ...e,
     controls: O(e.name, e.controls)
@@ -101,11 +104,11 @@ const g = () => {
   /** Replaces the whole list, for a control list that depends on the extension's own state. */
   setControls: (e, t) => n("properties.setControls", { name: e, controls: O(e, t) }),
   update: (e, t) => n("properties.update", { name: e, patch: t })
-}, oe = {
+}, re = {
   registerItem: ({ component: e, ...t }) => (e && d("settings", { component: e }), a("settings.registerItem", t)),
   unregisterItem: (e) => n("settings.unregisterItem", { name: e }),
   update: (e, t) => n("settings.update", { name: e, patch: t })
-}, re = {
+}, se = {
   /** The whole snapshot, once. For startup. */
   get: () => n("context.get"),
   /**
@@ -124,7 +127,7 @@ const g = () => {
     });
     return n("context.subscribe", { fields: e }), r;
   }
-}, se = {
+}, ie = {
   /** One block and its subtree, as a plain object. The id comes from the context or a menu row. */
   get: (e) => n("block.get", { blockId: e }),
   /** Refused without `block.update`, and refused again while the page is read-only. */
@@ -141,7 +144,7 @@ const g = () => {
    * the selection stays the user's.
    */
   insert: (e, t, o) => n("block.insert", { parentId: e, block: t, index: o })
-}, ie = {
+}, ce = {
   /**
    * The tree the canvas holds, as a list of roots. A node carries its own
    * `children`, so walk it to reach every block.
@@ -167,13 +170,13 @@ const g = () => {
   detachScript: (e) => n("page.detachScript", { type: e }),
   /** This extension's own scripts on the open page, and nobody else's. */
   listScripts: () => n("page.listScripts")
-}, ce = {
+}, ae = {
   /** Everything this extension has stored. Per browser and per user. */
   get: () => n("state.get"),
   /** Merged at the top level. Never removes a key the patch leaves unmentioned. */
   set: (e) => n("state.set", { state: e }),
   unset: (e) => n("state.unset", { key: e })
-}, ae = {
+}, le = {
   /**
    * Upserts by `key`, and never deletes what the call leaves unmentioned.
    *
@@ -215,7 +218,7 @@ const g = () => {
   update: (e, t, o) => n("data.update", { doctype: e, name: t, doc: o }),
   /** Needs its own `delete` grant: losing a record is not changing one. */
   delete: (e, t) => n("data.delete", { doctype: e, name: t })
-}, le = {
+}, ue = {
   /**
    * A new custom doctype, owned by this extension.
    *
@@ -242,7 +245,7 @@ const g = () => {
   deleteDoctype: (e) => n("schema.deleteDoctype", { doctype: e }),
   /** Every doctype this extension made, and whether each still exists. */
   listDoctypes: () => n("schema.listDoctypes")
-}, ue = {
+}, pe = {
   /**
    * The handler stays in this frame, and the host learns only the name.
    *
@@ -258,13 +261,13 @@ const g = () => {
   if (typeof r != "string" || !r)
     throw f(`${o} needs a "${t}".`, "invalid_params");
   return r;
-}, pe = (e) => {
+}, de = (e) => {
   const t = e.fieldname;
   if (typeof t == "string") return { [t]: e.value };
   if (!t || typeof t != "object")
     throw f('frappe.client.set_value needs a "fieldname".', "invalid_params");
   return t;
-}, de = (e) => ({
+}, ge = (e) => ({
   fields: e.fields,
   filters: e.filters,
   orFilters: e.or_filters,
@@ -276,7 +279,7 @@ const g = () => {
   "frappe.client.get_list": (e) => {
     if (e.parent)
       throw f('"parent" is not supported: grant the parent doctype instead.');
-    return i.getList(s(e, "doctype", "frappe.client.get_list"), de(e));
+    return i.getList(s(e, "doctype", "frappe.client.get_list"), ge(e));
   },
   "frappe.client.get_count": (e) => i.getCount(
     s(e, "doctype", "frappe.client.get_count"),
@@ -294,28 +297,28 @@ const g = () => {
   "frappe.client.set_value": (e) => i.update(
     s(e, "doctype", "frappe.client.set_value"),
     s(e, "name", "frappe.client.set_value"),
-    pe(e)
+    de(e)
   ),
   "frappe.client.delete": (e) => i.delete(
     s(e, "doctype", "frappe.client.delete"),
     s(e, "name", "frappe.client.delete")
   )
-}, ge = (e) => {
+}, fe = (e) => {
   const t = e?.url ?? "", o = $[t];
   if (!o)
     throw f(
       `no route for "${t}". An extension reaches site data through a doctype it was granted, so a resource may name only: ${Object.keys($).join(", ")}.`
     );
   return o(A(e.params));
-}, u = (e, t) => g().call(e, t), fe = (e = {}) => u("ui.openDialog", e), he = (e) => u("ui.closeDialog", { result: e }), ye = (e = {}) => u("ui.openPopover", e), we = (e) => u("ui.closePopover", { result: e }), me = (e, t = {}) => u("ui.toast", { message: e, ...t }), ve = {
-  openDialog: fe,
-  closeDialog: he,
-  openPopover: ye,
-  closePopover: we,
-  toast: me,
+}, u = (e, t) => g().call(e, t), he = (e = {}) => u("ui.openDialog", e), ye = (e) => u("ui.closeDialog", { result: e }), we = (e = {}) => u("ui.openPopover", e), me = (e) => u("ui.closePopover", { result: e }), ve = (e, t = {}) => u("ui.toast", { message: e, ...t }), be = {
+  openDialog: he,
+  closeDialog: ye,
+  openPopover: we,
+  closePopover: me,
+  toast: ve,
   /** What the open call was made with. Read by the document the slot mounted. */
   props: () => z()
-}, xe = {
+}, _e = {
   /**
    * Imperative startup work, in the hidden entry frame only.
    *
@@ -337,37 +340,37 @@ const g = () => {
   dialog: {
     register: (e) => d("dialog", e)
   },
-  /**
-   * The same, for the floating panel `ui.openPopover` opens.
-   *
-   * Builder chrome opens a declared popover itself, so the size travels with
-   * the registration rather than with the open call. Omit it for the default.
-   */
+  /** The same, for the floating panel `ui.openPopover` opens. */
   popover: {
-    register: ({ component: e, ...t }) => (d("popover", { component: e }), a("popover.register", t))
+    register: (e) => d("popover", e)
   },
+  /**
+   * What the Open button in this extension's details pane opens: a popover, a
+   * dialog, or its own left panel tab. Declare none and the pane draws none.
+   */
+  open: ee,
   /** One tab, registered from the entry frame and drawn by the host (Tier C). */
   leftPanel: Z,
   /** A descriptor. Builder draws the button and posts the action back (Tier A). */
-  toolbar: ee,
+  toolbar: te,
   /** A row in the block menu. Its rule is answered for the block under the cursor. */
-  contextMenu: te,
+  contextMenu: ne,
   /** Tier B. A list naming Builder's own controls, which the host renders. */
-  properties: ne,
+  properties: oe,
   /** One page in the settings dialog, and the document it loads. */
-  settings: oe,
+  settings: re,
   /** The editor snapshot: read it once, or name the fields to be told about. */
-  context: re,
+  context: se,
   /** One block, by the id a menu row or the snapshot handed over. */
-  block: se,
+  block: ie,
   /** The whole tree, when one block is not enough. */
-  page: ie,
+  page: ce,
   /** A modal, and a draggable popover, the host draws around this extension's own document. */
-  ui: ve,
+  ui: be,
   /** This extension's own storage. No capability, because Builder never reads it. */
-  state: ce,
+  state: ae,
   /** Real `Builder Token` rows, so they reach the published site too. */
-  tokens: ae,
+  tokens: le,
   /**
    * Site data. Ask the user for a doctype first: nothing here is granted at install.
    *
@@ -383,11 +386,11 @@ const g = () => {
    * any Frappe app. The grant still comes first: a resource errors with
    * `grant_required` until `requestAccess` has been answered.
    */
-  data: { ...i, fetcher: ge },
+  data: { ...i, fetcher: fe },
   /** Doctypes this extension creates. The user is asked before a table is made or dropped. */
-  schema: le,
+  schema: ue,
   /** The functions this extension owns. A descriptor names one, the host calls it. */
-  actions: ue,
+  actions: pe,
   host: {
     /** Which Builder this extension landed in. An extension ships on its own schedule. */
     info: () => g().call("host.info")
@@ -395,5 +398,5 @@ const g = () => {
 };
 Y();
 export {
-  xe as default
+  _e as default
 };

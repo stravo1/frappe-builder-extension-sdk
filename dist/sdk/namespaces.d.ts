@@ -13,6 +13,7 @@
  * Nothing is validated here. The host validates every parameter (1.12), and a
  * copy of a rule on this side would be a second thing to keep in step.
  */
+import type { OpenTarget } from "../types";
 import { type ActionHandler } from "./actions";
 /**
  * A declaration. The host hears it from the entry frame only.
@@ -134,6 +135,16 @@ export declare const leftPanel: {
     register: ({ component, ...registration }: LeftPanelRegistration) => Promise<unknown>;
     unregister: (name: string) => Promise<unknown>;
     update: (name: string, patch: ItemPatch) => Promise<unknown>;
+};
+/**
+ * What the Open button in the extension's details pane does.
+ *
+ * A declaration, not a slot: `kind` names an interface the extension registered
+ * elsewhere, and Builder opens it. Declare none and the pane draws no button.
+ */
+export declare const open: {
+    register: (target: OpenTarget) => Promise<unknown>;
+    unregister: () => Promise<unknown>;
 };
 export declare const toolbar: {
     register: (registration: ToolbarRegistration) => Promise<unknown>;

@@ -5,7 +5,6 @@
  * extension's own import, so both get one module instance and one channel.
  */
 import { type Mounter, type SlotEntry } from "./slots";
-import { type FrameSize } from "./ui";
 export type HostInfo = {
     version: string;
     protocol: number;
@@ -32,14 +31,17 @@ declare const builder: {
     dialog: {
         register: (entry: SlotEntry) => void;
     };
-    /**
-     * The same, for the floating panel `ui.openPopover` opens.
-     *
-     * Builder chrome opens a declared popover itself, so the size travels with
-     * the registration rather than with the open call. Omit it for the default.
-     */
+    /** The same, for the floating panel `ui.openPopover` opens. */
     popover: {
-        register: ({ component, ...size }: SlotEntry & FrameSize) => Promise<unknown>;
+        register: (entry: SlotEntry) => void;
+    };
+    /**
+     * What the Open button in this extension's details pane opens: a popover, a
+     * dialog, or its own left panel tab. Declare none and the pane draws none.
+     */
+    open: {
+        register: (target: import("../types").OpenTarget) => Promise<unknown>;
+        unregister: () => Promise<unknown>;
     };
     /** One tab, registered from the entry frame and drawn by the host (Tier C). */
     leftPanel: {
