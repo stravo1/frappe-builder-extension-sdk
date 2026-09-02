@@ -44,6 +44,39 @@ export default defineConfig({
 The plugin needs a `manifest.json` beside the config, and an entry at
 `src/main.js` or `src/main.ts`.
 
+### One file
+
+An extension builds to one file. The editor reads `main.js` and posts the code
+into the frame, so nothing built has a URL left to fetch a second file from.
+
+The plugin folds your CSS into the entry and inlines an asset up to 64 kB. A build
+that emits anything else fails and names the file. Two things cause that:
+
+- A dynamic `import()`. Import the module statically instead.
+- An asset over 64 kB, usually a font. Drop it and use the one Builder loads.
+
+`frappe-ui/style.css` imports Inter. Vite embeds an inlined asset once for every
+reference, and six `@font-face` rules name each variable font, so that one import
+adds 4.5 MB. Point it at an empty stylesheet:
+
+```js
+import path from "node:path";
+
+export default defineConfig({
+	resolve: {
+		alias: [
+			{
+				find: /^.*fonts\/Inter\/inter\.css$/,
+				replacement: path.resolve("./src/no-fonts.css"),
+			},
+		],
+	},
+});
+```
+
+The frame runs inside Builder, which loads Inter already, so your text renders
+either way.
+
 ## Write against the editor
 
 ```js
@@ -82,6 +115,9 @@ for this session. A reload of the editor drops it.
 Builder has no install API yet. Until it arrives, `install_extension.py` writes the
 files and inserts the record.
 
+An extension belongs to the user who installed it. Nobody else on the site sees it,
+and every user gets their own copy of the files at their own version.
+
 1. Run `yarn build` in your extension directory.
 2. Change to the `sites` directory of your bench.
 3. Run the script with the site name and the extension directory.
@@ -91,18 +127,25 @@ cd sites
 ../env/bin/python /path/to/install_extension.py builder.localhost /path/to/my-extension
 ```
 
-Run it again after every build. The script hashes the files, and a new hash makes the
-editor read the new entry.
+It installs for `Administrator`. Name another user with `--user`:
 
-To remove the extension:
+```sh
+../env/bin/python /path/to/install_extension.py builder.localhost /path/to/my-extension \
+	--user alice@example.com
+```
+
+Run it again after every build. The script hashes the files, and a new hash makes the
+editor mount the new entry.
+
+To remove the extension for one user:
 
 ```sh
 ../env/bin/python /path/to/install_extension.py builder.localhost /path/to/my-extension --uninstall
 ```
 
-Frappe refuses to delete an extension that a `Builder Token` still names. The script
-lists those tokens and asks before it deletes them. Published pages can use a token an
-extension wrote, so read the list first.
+Uninstall takes that user's copy, their grants and their stored state. It keeps every
+doctype, token and client script the extension made, because those serve the whole
+site. The script reports what stays, and whether anyone else still has the extension.
 
 The script installs `dist/` after a build. If the directory has no `dist/`, it installs
 `src/`, which works for an extension of plain JavaScript.

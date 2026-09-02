@@ -9,16 +9,25 @@ export type ExtensionSlot = "main" | "panel" | "dialog" | "popover" | "settings"
 /** Every capability the bridge gates a method by. Mirrors CAPABILITIES in builder_extension.py. */
 export declare const CAPABILITIES: readonly ["context.read", "block.read", "block.update", "block.insert", "page.read", "page.write", "token.write", "ui.dialog", "ui.popover", "data.access", "schema.write"];
 export type Capability = (typeof CAPABILITIES)[number];
-/** One enabled record, as get_enabled_extensions returns it. */
+/** One of this user's installations, as get_enabled_extensions returns it. */
 export type InstalledExtension = {
     name: string;
     label: string;
     /** A brief summary shown in the Extensions panel. */
     description?: string;
-    entry: string;
     capabilities: Capability[];
-    /** The URL of the SVG the package ships. Unset when it ships none. */
+    /** A data URI for the SVG the package ships. Unset when it ships none. */
     icon?: string;
+    /**
+     * Of this user's installed files. Set for an installed extension, and it keys
+     * the frame, so a rebuild remounts one. A development extension has none.
+     */
+    checksum?: string;
+    /**
+     * Where a dev server serves the entry. Set for a development extension only:
+     * an installed one has no URL, because no route serves one user's files.
+     */
+    entry?: string;
 };
 export type Breakpoint = "desktop" | "tablet" | "mobile";
 /**
@@ -99,7 +108,10 @@ export type ConnectMessage = {
     v: typeof PROTOCOL_VERSION;
     type: "connect";
     slot: ExtensionSlot;
-    entry: string;
+    /** A development extension imports this URL from its dev server. */
+    entry?: string;
+    /** An installed extension arrives as code, and the frame runs it from a Blob. */
+    source?: string;
     theme: "light" | "dark";
     props?: Record<string, unknown>;
 };
