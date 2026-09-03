@@ -2,3 +2,6 @@ node_modules
 *.log
 .DS_Store
 __pycache__
+
+# built by `prepare` when npm installs this from git
+dist
