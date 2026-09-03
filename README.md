@@ -11,10 +11,23 @@ copy exists to let you install it today. Builder owns the source. Read
 ## Install
 
 ```sh
-npm install --save-dev github:stravo1/frappe-builder-extension-sdk
+npm install --save-dev github:stravo1/frappe-builder-extension-sdk#v0.1.3
 ```
 
 The package builds itself on install, so you need no extra step.
+
+## Create an extension
+
+Run the scaffolder directly from GitHub. The SDK does not need to be published
+to npm:
+
+```sh
+npx github:stravo1/frappe-builder-extension-sdk#v0.1.3 create
+```
+
+It creates a TypeScript Vue extension with frappe-ui, Tailwind, a development
+server, an example toolbar popover, release automation, and a Git repository.
+It does not install dependencies. Run the commands it prints when it finishes.
 
 ## Two halves
 
@@ -132,10 +145,10 @@ The command validates the repository, manifest, built files, and package limits.
 package contains only `manifest.json`, `main.js`, and the optional SVG icon. The command
 writes `release/acme-icons-1.2.0.builderext` and prints its size and SHA-256.
 
-Create a GitHub release whose tag exactly matches the manifest version, without a
-`v` prefix, and attach that file. Copy the workflow shipped at
-`templates/github/workflows/release.yml` to `.github/workflows/release.yml` to build,
-package, and create the release whenever a version tag is pushed.
+Create a GitHub release whose tag is the manifest version with a `v` prefix. For
+example, manifest version `1.2.0` uses tag `v1.2.0`. Copy the workflow shipped at
+`templates/github/workflows/release.yml` to `.github/workflows/release.yml`. It
+supports both pushed tags and releases created on GitHub.
 
 The first release and repository need Builder Hub review. For a later release, update
 `manifest.json`, commit it, and push the exact version tag. Builder Hub detects and
@@ -143,7 +156,7 @@ validates the new GitHub release without another listing submission.
 
 ## Run your extension
 
-1. Run `yarn dev` in your extension directory.
+1. Run `npm run dev` in your extension directory.
 2. Open Builder at the origin you gave to `builderUrl`.
 3. Choose **load development extension**, and paste the URL the terminal printed.
 
@@ -158,7 +171,7 @@ files and inserts the record.
 An extension belongs to the user who installed it. Nobody else on the site sees it,
 and every user gets their own copy of the files at their own version.
 
-1. Run `yarn build` in your extension directory.
+1. Run `npm run build` in your extension directory.
 2. Change to the `sites` directory of your bench.
 3. Run the script with the site name and the extension directory.
 
@@ -215,9 +228,8 @@ it, and `sync.py` copies it here.
 
 ## Versions
 
-The major version of this package is the protocol version it speaks. Version
-`1.x` works with any Builder that serves protocol 1. A Builder on a later
-protocol needs the matching major version.
+The SDK remains on `0.x` while its authoring API stabilizes. The extension
+protocol is versioned separately by the manifest's `v` field.
 
 ## Mirror, not fork
 
@@ -228,8 +240,9 @@ in this repository. Change it in Builder, then copy it across:
 python3 sync.py /path/to/apps/builder
 ```
 
-`sync.py` copies `bin`, `src`, `templates`, `tests`, `skills`, `install_extension.py`,
-`package.js`, `vite.js`, `package.json`, `tsconfig.build.json`, and `vite.config.mts`. It
+`sync.py` copies `bin`, `create.js`, `src`, `templates`, `tests`, `skills`,
+`install_extension.py`, `package.js`, `vite.js`, `package.json`,
+`tsconfig.build.json`, and `vite.config.mts`. It
 copies nothing else. This README and the license belong to this repository. Edit those here.
 
 When the SDK reaches npm, this repository stops. Point your `package.json` at the npm
@@ -237,10 +250,10 @@ version. The copy then goes stale with no effect on you.
 
 ## Tests
 
-The SDK tests run in a Builder checkout, where the Vitest config lives:
-
 ```sh
-cd apps/builder/frontend && yarn test
+npm install
+npm test
+npm run build
 ```
 
 ## License

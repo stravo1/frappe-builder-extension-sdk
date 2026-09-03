@@ -18,6 +18,7 @@ import sys
 # What Builder owns: its path in the checkout, and where it lands here.
 COPIED = {
 	"frontend/extension-sdk/bin": "bin",
+	"frontend/extension-sdk/create.js": "create.js",
 	"frontend/extension-sdk/package.js": "package.js",
 	"frontend/extension-sdk/src": "src",
 	"frontend/extension-sdk/templates": "templates",
@@ -95,7 +96,7 @@ def main(path: str):
 
 	print(f"\nREADME.md is not copied. Read {UPSTREAM_README} for changes worth carrying across.")
 	if changed:
-		print("Build and commit:\n  yarn build && git add -A && git commit")
+		print("Build and commit:\n  npm install && npm run build && git add -A && git commit")
 
 
 if __name__ == "__main__":
