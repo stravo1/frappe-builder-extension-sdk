@@ -131,7 +131,8 @@ builder.popover.register({ component: () => import("./Popover.vue") });
 
 ## Package a release
 
-Builder Hub reads `manifest.json`, `README.md`, and `LICENSE` from the repository root.
+Builder Hub reads `manifest.json`, `README.md`, and `LICENSE` from the repository root. It also
+reads `DESCRIPTION.md` when there is one, and shows it in place of `README.md`.
 Each release manifest declares its required Builder extension protocol in `v`.
 
 Build, then create the release package:
@@ -191,7 +192,8 @@ Run it again after every build. The script hashes the files, and a new hash make
 editor mount the new entry.
 
 The script also reads `README.md` from your extension directory and stores it on the
-installation, so the Extensions panel shows it. The file is never copied into the
+installation, so the Extensions panel shows it. If your README is written for developers, add a
+`DESCRIPTION.md` for users. The panel then shows `DESCRIPTION.md` and ignores `README.md`. The file is never copied into the
 package: a built extension is `main.js`, `manifest.json` and one icon, and nothing else.
 
 The panel shows every capability your manifest asks for, and lets the user turn one
