@@ -22,13 +22,11 @@ COPIED = {
 	"frontend/extension-sdk/package.js": "package.js",
 	"frontend/extension-sdk/src": "src",
 	"frontend/extension-sdk/templates": "templates",
-	"frontend/extension-sdk/tests": "tests",
 	"frontend/extension-sdk/vite.js": "vite.js",
 	"frontend/extension-sdk/package.json": "package.json",
 	"frontend/extension-sdk/tsconfig.build.json": "tsconfig.build.json",
 	"frontend/extension-sdk/vite.config.mts": "vite.config.mts",
 	"frontend/extension-sdk/skills": "skills",
-	"frontend/extension-sdk/install_extension.py": "install_extension.py",
 }
 
 # Not copied, because it documents a git install that Builder's own copy does not.

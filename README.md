@@ -19,7 +19,7 @@ The package builds itself on install, so you need no extra step.
 ## Create an extension
 
 Run the scaffolder directly from GitHub. The SDK does not need to be published
-to npm:
+to npm.
 
 ```sh
 npx github:stravo1/frappe-builder-extension-sdk#v0.1.3 create
@@ -68,42 +68,18 @@ Use the version 1 manifest shape. The build rejects missing and unknown fields.
 	"version": "1.2.0",
 	"entry": "main.js",
 	"icon": "icon.svg",
-	"capabilities": ["context.read", "block.update"]
+	"permissions": ["page.edit"]
 }
 ```
 
-### One file
+A manifest can name an icon, such as `"icon": "icon.svg"`. Put a square SVG of that name beside the
+entry. Builder draws it beside the extension in the Extensions panel.
 
-An extension builds to one file. The editor reads `main.js` and posts the code
-into the frame, so nothing built has a URL left to fetch a second file from.
+Put a `README.md` in the extension directory. The installer stores it on the installation, and the
+Extensions panel shows it.
 
-The plugin folds your CSS into the entry and inlines an asset up to 64 kB. A build
-that emits anything else fails and names the file. Two things cause that:
-
-- A dynamic `import()`. Import the module statically instead.
-- An asset over 64 kB, usually a font. Drop it and use the one Builder loads.
-
-`frappe-ui/style.css` imports Inter. Vite embeds an inlined asset once for every
-reference, and six `@font-face` rules name each variable font, so that one import
-adds 4.5 MB. Point it at an empty stylesheet:
-
-```js
-import path from "node:path";
-
-export default defineConfig({
-	resolve: {
-		alias: [
-			{
-				find: /^.*fonts\/Inter\/inter\.css$/,
-				replacement: path.resolve("./src/no-fonts.css"),
-			},
-		],
-	},
-});
-```
-
-The frame runs inside Builder, which loads Inter already, so your text renders
-either way.
+The panel also lists every permission the manifest asks for, and the user can turn one off. A
+permission the user turned off is refused the way one you never asked for is.
 
 ## Write against the editor
 
@@ -114,9 +90,12 @@ builder.toolbar.register({
 	name: "say-hello",
 	region: "right",
 	icon: "lucide-hand",
-	action: () => builder.ui.toast("hello"),
+	action: async () => console.log(await builder.context.get()),
 });
 ```
+
+In the right region, Builder's own buttons always stay at the right end. `before` and `after` place
+your button among the extension buttons only.
 
 A Vue slot uses the `/vue` entry. Register the adapter once, and every slot then takes a component.
 
@@ -128,6 +107,22 @@ builder.popover.register({ component: () => import("./Popover.vue") });
 ```
 
 `vue` is an optional peer dependency. Install it only if you write slots in Vue.
+
+## Run it in Builder
+
+1. Turn on developer mode for the site.
+2. Start the extension's dev server with `npm run dev`.
+3. In the Builder editor, open the command palette and run **Load Dev Extension**.
+4. Enter the address the dev server prints.
+
+Builder makes a site installation for the extension and grants what the manifest asks for. Only a
+user who manages extensions can load one. The extension runs until you reload the editor.
+
+The dev server stays on one port, 5173 by default. If that port is in use, the dev server stops.
+To run a second extension, set `server.port` in its `vite.config.js`.
+
+The plugin sets the asset URLs to `http://localhost:<port>`, or `https://` when `server.https` is
+set. If a plugin turns on HTTPS for you, such as `@vitejs/plugin-basic-ssl`, set `server.origin`.
 
 ## Package a release
 
@@ -143,8 +138,9 @@ npx builder-extension package
 ```
 
 The command validates the repository, manifest, built files, and package limits. A
-package contains only `manifest.json`, `main.js`, and the optional SVG icon. The command
-writes `release/acme-icons-1.2.0.builderext` and prints its size and SHA-256.
+package holds `manifest.json`, `main.js` and the optional SVG icon at the root, and the
+build's `chunks/` and `assets/` folders. A relative import must name a file in the package.
+The command writes `release/acme-icons-1.2.0.builderext` and prints its size and SHA-256.
 
 Create a GitHub release whose tag is the manifest version with a `v` prefix. For
 example, manifest version `1.2.0` uses tag `v1.2.0`. Copy the workflow shipped at
@@ -155,83 +151,16 @@ The first release and repository need Builder Hub review. For a later release, u
 `manifest.json`, commit it, and push the exact version tag. Builder Hub detects and
 validates the new GitHub release without another listing submission.
 
-## Run your extension
-
-1. Run `npm run dev` in your extension directory.
-2. Open Builder at the origin you gave to `builderUrl`.
-3. Choose **load development extension**, and paste the URL the terminal printed.
-
-The editor reads `/__builder-extension` from your dev server, and adds the extension
-for this session. A reload of the editor drops it.
-
-## Install on a site
-
-Builder has no install API yet. Until it arrives, `install_extension.py` writes the
-files and inserts the record.
-
-An extension belongs to the user who installed it. Nobody else on the site sees it,
-and every user gets their own copy of the files at their own version.
-
-1. Run `npm run build` in your extension directory.
-2. Change to the `sites` directory of your bench.
-3. Run the script with the site name and the extension directory.
-
-```sh
-cd sites
-../env/bin/python /path/to/install_extension.py builder.localhost /path/to/my-extension
-```
-
-It installs for `Administrator`. Name another user with `--user`:
-
-```sh
-../env/bin/python /path/to/install_extension.py builder.localhost /path/to/my-extension \
-	--user alice@example.com
-```
-
-Run it again after every build. The script hashes the files, and a new hash makes the
-editor mount the new entry.
-
-The script also reads `README.md` from your extension directory and stores it on the
-installation, so the Extensions panel shows it. If your README is written for developers, add a
-`DESCRIPTION.md` for users. The panel then shows `DESCRIPTION.md` and ignores `README.md`. The file is never copied into the
-package: a built extension is `main.js`, `manifest.json` and one icon, and nothing else.
-
-The panel shows every capability your manifest asks for, and lets the user turn one
-off. A capability the user turned off is refused the way one you never asked for is,
-so read the error before you assume a bug.
-
-To remove the extension for one user:
-
-```sh
-../env/bin/python /path/to/install_extension.py builder.localhost /path/to/my-extension --uninstall
-```
-
-Uninstall takes that user's copy, their grants and their stored state. It keeps every
-doctype, token and client script the extension made, because those serve the whole
-site. The script reports what stays, and whether anyone else still has the extension.
-
-The script installs `dist/` after a build. If the directory has no `dist/`, it installs
-`src/`, which works for an extension of plain JavaScript.
-
 ## Agent skill
 
-`skills/build-builder-extension/` is a skill for Claude Code and other agents. It carries the
-workflow, and the whole API as a reference file. Copy it into your skills directory:
+The package ships a skill for Claude Code and other agents. It holds the workflow, and
+the whole API as a reference file.
 
 ```sh
-cp -R skills/build-builder-extension ~/.claude/skills/
+cp -R node_modules/frappe-builder-extension-sdk/skills/build-builder-extension ~/.claude/skills/
 ```
 
-Then ask the agent for a Builder extension. The agent reads
-`references/extension-api.md` for the capabilities, the surfaces, and the error codes.
-
-The skill ships inside the package, so an install puts it in `node_modules` too. Builder owns
-it, and `sync.py` copies it here.
-
-## Versions
-
-The SDK remains on `0.x` while its authoring API stabilizes. The extension
-protocol is versioned separately by the manifest's `v` field.
+Then ask the agent for a Builder extension.
 
 ## Mirror, not fork
 
@@ -242,21 +171,17 @@ in this repository. Change it in Builder, then copy it across:
 python3 sync.py /path/to/apps/builder
 ```
 
-`sync.py` copies `bin`, `create.js`, `src`, `templates`, `tests`, `skills`,
-`install_extension.py`, `package.js`, `vite.js`, `package.json`,
-`tsconfig.build.json`, and `vite.config.mts`. It
-copies nothing else. This README and the license belong to this repository. Edit those here.
+`sync.py` copies `bin`, `create.js`, `src`, `templates`, `skills`, `package.js`, `vite.js`,
+`package.json`, `tsconfig.build.json`, and `vite.config.mts`. It copies nothing else. This
+README and the license belong to this repository. Edit those here.
 
 When the SDK reaches npm, this repository stops. Point your `package.json` at the npm
 version. The copy then goes stale with no effect on you.
 
-## Tests
+## Versions
 
-```sh
-npm install
-npm test
-npm run build
-```
+The SDK remains on `0.x` while its authoring API stabilizes. The extension
+protocol is versioned separately by the manifest's `v` field.
 
 ## License
 
