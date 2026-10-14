@@ -26,7 +26,6 @@ COPIED = {
 	"frontend/extension-sdk/package.json": "package.json",
 	"frontend/extension-sdk/tsconfig.build.json": "tsconfig.build.json",
 	"frontend/extension-sdk/vite.config.mts": "vite.config.mts",
-	"frontend/extension-sdk/skills": "skills",
 }
 
 # Not copied, because it documents a git install that Builder's own copy does not.

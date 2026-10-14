@@ -1,12 +1,5 @@
 /**
  * The rules for `manifest.json`.
- *
- * The Vite plugin uses this file to check a manifest before a build or a dev
- * load. `types.ts` gets the version and the permission types from it.
- *
- * This file is plain JavaScript. Node loads the Vite plugin from
- * `node_modules`, and Node does not remove types there. So the plugin and all
- * the files that it imports must be JavaScript.
  */
 
 /** The `v` field of a manifest. Each port message also has this version. */
@@ -16,12 +9,10 @@ export const PROTOCOL_VERSION = 1;
  * Each permission that an extension can ask for. A read or a window needs no permission.
  * Keep this list the same as `PERMISSIONS` in `builder/extensions/constants.py`.
  *
- * @type {readonly ("page.edit" | "page.write" | "token.write" | "data.access" | "schema.write" | "method.call")[]}
+ * @type {readonly ("page.edit" | "data.access" | "schema.write" | "method.call")[]}
  */
 export const PERMISSIONS = [
 	"page.edit",
-	"page.write",
-	"token.write",
 	"data.access",
 	"schema.write",
 	"method.call",

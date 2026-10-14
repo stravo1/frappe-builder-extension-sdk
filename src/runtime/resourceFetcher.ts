@@ -1,30 +1,5 @@
 /**
  * Sends frappe-ui resource requests through the bridge.
- *
- * An extension frame has an opaque origin and no cookie. So `fetch` cannot
- * reach Frappe from the frame. `createResource` reads its fetcher on each
- * request. So one `setConfig` call sends each resource in the frame through
- * the port:
- *
- * ```js
- * import { setConfig } from "frappe-ui";
- * import builder from "frappe-builder-extension-sdk";
- *
- * setConfig("resourceFetcher", builder.data.fetcher);
- * ```
- *
- * Write it in the entry, which each frame imports. Use the `frappe-ui` of the
- * extension. Each extension bundles its own copy, and the SDK cannot reach the
- * config of that copy.
- *
- * **This is an adapter, not a gate.** It runs in the frame, and the frame is
- * not trusted. So it decides nothing. Each route below goes to a `data.*`
- * method. The host gates that method, and the server checks the permission.
- * A frame that replaces this file gets the same methods and the same refusals.
- *
- * The adapter refuses a URL with no route. It does not forward it. If it did,
- * a resource could call any whitelisted method on the site. Then the
- * `data.access` permission would have no effect.
  */
 
 import { ChannelCallError } from "../shared/transport/createPortChannel";
@@ -48,8 +23,7 @@ const refuse = (message: string, code = "unsupported_request") =>
  * `postMessage` cannot clone a proxy. So this code makes plain copies before
  * the send. The host makes a plain copy of the answer for the same reason.
  */
-const asParams = (value: unknown): Params =>
-	value ? (JSON.parse(JSON.stringify(value)) as Params) : {};
+const asParams = (value: unknown): Params => (value ? (JSON.parse(JSON.stringify(value)) as Params) : {});
 
 const named = (params: Params, field: string, url: string) => {
 	const value = params[field];
@@ -68,13 +42,14 @@ const patchOf = (params: Params) => {
 	const sent = params.fieldname;
 	if (typeof sent === "string") return { [sent]: params.value };
 	if (!sent || typeof sent !== "object") {
-		throw refuse("frappe.client.set_value needs a \"fieldname\".", "invalid_params");
+		throw refuse('frappe.client.set_value needs a "fieldname".', "invalid_params");
 	}
 	return sent as Params;
 };
 
 const listOptions = (params: Params): ListOptions => ({
-	fields: params.fields as string[],
+	// `fetchOne` with no fields sends "*" as a string. `data.getList` takes a list
+	fields: typeof params.fields === "string" ? [params.fields] : (params.fields as string[]),
 	filters: params.filters as ListOptions["filters"],
 	orFilters: params.or_filters as ListOptions["filters"],
 	orderBy: params.order_by as string,
@@ -93,7 +68,7 @@ const ROUTES: Record<string, (params: Params) => Promise<unknown>> = {
 	"frappe.client.get_list": (params) => {
 		// the permission of the parent controls a child table. So read the parent
 		if (params.parent) {
-			throw refuse("\"parent\" is not supported: read the parent document instead.");
+			throw refuse('"parent" is not supported: read the parent document instead.');
 		}
 		return data.getList(named(params, "doctype", "frappe.client.get_list"), listOptions(params));
 	},
@@ -105,10 +80,7 @@ const ROUTES: Record<string, (params: Params) => Promise<unknown>> = {
 		),
 
 	"frappe.client.get": (params) =>
-		data.getDoc(
-			named(params, "doctype", "frappe.client.get"),
-			named(params, "name", "frappe.client.get"),
-		),
+		data.getDoc(named(params, "doctype", "frappe.client.get"), named(params, "name", "frappe.client.get")),
 
 	// here, the doctype is inside the document, not next to it
 	"frappe.client.insert": (params) => {
@@ -139,13 +111,11 @@ const ROUTES: Record<string, (params: Params) => Promise<unknown>> = {
  */
 export const resourceFetcher = (options: ResourceRequest) => {
 	const url = options?.url ?? "";
-	const route = ROUTES[url];
+	// an own key only. Otherwise `constructor` and `toString` would be routes
+	const route = Object.hasOwn(ROUTES, url) ? ROUTES[url] : undefined;
 
 	if (!route) {
-		throw refuse(
-			`no route for "${url}". An extension reaches site data through a doctype it was ` +
-				`granted, so a resource may name only: ${Object.keys(ROUTES).join(", ")}.`,
-		);
+		throw refuse(`no route for "${url}". A resource can call only: ${Object.keys(ROUTES).join(", ")}.`);
 	}
 
 	return route(asParams(options.params));

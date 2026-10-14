@@ -1,15 +1,5 @@
 /**
  * `frappe-builder-extension-sdk`: the object that an extension imports.
- *
- * - `connect.ts`: the handshake, and how the frame runs the extension code.
- * - `methods.ts`: the `builder.<surface>` APIs.
- * - `slots.ts`: the five slots, and the slot that this frame runs.
- * - `actions.ts`: the action handlers that the host calls.
- * - `ui.ts`: toasts, dialogs and popovers from inside a frame.
- * - `resourceFetcher.ts`: sends frappe-ui resource requests through the bridge.
- *
- * The shell loads this file. The import map gives the same URL to the import
- * of the extension. So both use one module copy and one channel.
  */
 
 import { getChannel, listenForHandshake } from "./connect";
@@ -27,7 +17,6 @@ import {
 	settings,
 	state,
 	toolbar,
-	tokens,
 } from "./methods";
 import { resourceFetcher } from "./resourceFetcher";
 import { registerMain, registerSlot, use, type Mounter, type SlotEntry } from "./slots";
@@ -102,13 +91,10 @@ const builder = {
 	/** The storage of this extension. It needs no permission, because Builder never reads it. */
 	state,
 
-	/** Real `Builder Token` rows. So they also reach the published site. */
-	tokens,
-
 	/**
 	 * Site data. Each call needs the `data.access` permission.
 	 *
-	 * This file adds `fetcher`, not `methods.ts`. So `methods.ts` does not
+	 * This file adds `fetcher`, not `methods/data.ts`. So `methods/data.ts` does not
 	 * import the file that reads it. Connect it one time, in the entry:
 	 *
 	 * ```js
@@ -121,7 +107,10 @@ const builder = {
 	 */
 	data: { ...data, fetcher: resourceFetcher },
 
-	/** The doctypes of this extension. Builder asks the user before it makes or removes a table. */
+	/**
+	 * The doctypes of this extension. Each call needs the `schema.write`
+	 * permission, and the user must be a System Manager.
+	 */
 	schema,
 
 	/** The functions of this extension. A descriptor names one. The host calls it. */

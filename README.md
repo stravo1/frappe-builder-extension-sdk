@@ -139,7 +139,7 @@ npx builder-extension package
 
 The command validates the repository, manifest, built files, and package limits. A
 package holds `manifest.json`, `main.js` and the optional SVG icon at the root, and the
-build's `chunks/` and `assets/` folders. A relative import must name a file in the package.
+build's `chunks/` and `assets/` folders.
 The command writes `release/acme-icons-1.2.0.builderext` and prints its size and SHA-256.
 
 Create a GitHub release whose tag is the manifest version with a `v` prefix. For
@@ -151,17 +151,6 @@ The first release and repository need Builder Hub review. For a later release, u
 `manifest.json`, commit it, and push the exact version tag. Builder Hub detects and
 validates the new GitHub release without another listing submission.
 
-## Agent skill
-
-The package ships a skill for Claude Code and other agents. It holds the workflow, and
-the whole API as a reference file.
-
-```sh
-cp -R node_modules/frappe-builder-extension-sdk/skills/build-builder-extension ~/.claude/skills/
-```
-
-Then ask the agent for a Builder extension.
-
 ## Mirror, not fork
 
 `frontend/extension-sdk` in frappe/builder owns every SDK file here. Do not change one
@@ -171,7 +160,7 @@ in this repository. Change it in Builder, then copy it across:
 python3 sync.py /path/to/apps/builder
 ```
 
-`sync.py` copies `bin`, `create.js`, `src`, `templates`, `skills`, `package.js`, `vite.js`,
+`sync.py` copies `bin`, `create.js`, `src`, `templates`, `package.js`, `vite.js`,
 `package.json`, `tsconfig.build.json`, and `vite.config.mts`. It copies nothing else. This
 README and the license belong to this repository. Edit those here.
 
