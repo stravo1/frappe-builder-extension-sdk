@@ -16,8 +16,8 @@ This repository is a copy of `frontend/extension-sdk` in
 copy lets you install it today. Builder owns the source. Read
 [Mirror, not fork](#mirror-not-fork) before you change a file here.
 
-This branch holds the SDK for **trusted extensions** (protocol 2). `main` holds the SDK
-for sandboxed extensions (protocol 1).
+This branch holds the SDK for **trusted extensions**. `main` holds the SDK for sandboxed
+extensions.
 
 ## Install
 
@@ -82,7 +82,7 @@ frappe-ui works with the user's own session. For example, `createListResource` a
 
 ```json
 {
-	"v": 2,
+	"v": 1,
 	"name": "publisher/extension",
 	"label": "Extension",
 	"description": "What it does.",
@@ -92,7 +92,7 @@ frappe-ui works with the user's own session. For example, `createListResource` a
 }
 ```
 
-`v` must be 2. Builder refuses a protocol 1 package, which was built for sandboxed extensions.
+A manifest has no `permissions` field. An extension runs with the access of the user who opens the editor.
 
 ## Develop
 
