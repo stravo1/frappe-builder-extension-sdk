@@ -1,9 +1,9 @@
 /**
- * `frappe-builder-extension-sdk/vite` — the build an extension author runs.
+ * `frappe-builder-extension-sdk/vite`: the build that an extension author runs.
  *
- * Plain JavaScript on purpose. Vite hands a config's own imports to Node, and
- * Node refuses to strip types from any file under `node_modules`, so a
- * TypeScript plugin cannot be loaded by the config that uses it.
+ * This file is plain JavaScript. Vite gives the imports of a config to Node.
+ * Node does not remove types from a file under `node_modules`. So a config
+ * cannot load a TypeScript plugin from a package.
  *
  * ```js
  * import builderExtension from "frappe-builder-extension-sdk/vite";
@@ -13,29 +13,61 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { parseJson, validateManifest } from "./src/shared/manifest.js";
 
-const SDK = "frappe-builder-extension-sdk";
 const MANIFEST = "manifest.json";
 
-/** Where Builder serves the one SDK instance every frame of an extension shares. */
-const SDK_PATH = "/builder_extension_asset/sdk/extension-sdk.js";
+/**
+ * The editor's own modules. The editor page's import map resolves each bare
+ * name to the editor's copy, so an extension shares its Vue, stores and
+ * frappe-ui. The build must never bundle them.
+ */
+export const SHARED_MODULES = ["builder", "vue", "pinia", "frappe-ui"];
 
-/** What the editor reads to learn what this dev server is serving. */
+/** The dev server answers these paths with a bare re-export of a shared module. */
+const SHARED_PATH = "/@builder-shared/";
+
+/** The editor reads this path to learn what the dev server serves. */
 const DESCRIPTOR_PATH = "/__builder-extension";
 
-/** Vite's hot reload client. It resolves against the dev server, which serves the entry. */
+/** The hot reload client of Vite. It loads from the dev server, which serves the entry. */
 const HMR_CLIENT = "/@vite/client";
 
-/** The record derives one URL per install, and it ends in this name. */
+/**
+ * The extension shares the editor's Vue. A built editor runs Vue's production
+ * build, which has no hot reload runtime, and `@vitejs/plugin-vue` calls that
+ * runtime with no check. So in that editor this module gives a runtime that does
+ * nothing, and an edit reloads the editor instead. The editor then loads the dev
+ * extension again. The entry imports it first, so it runs before any component.
+ */
+const HMR_FALLBACK_ID = "virtual:builder-hmr-fallback";
+const HMR_FALLBACK = `if (import.meta.hot && typeof __VUE_HMR_RUNTIME__ === "undefined") {
+	globalThis.__VUE_HMR_RUNTIME__ = { createRecord: () => false, rerender: () => {}, reload: () => {} };
+	import.meta.hot.on("vite:beforeUpdate", () => location.reload());
+}
+`;
+
+/** The port of Vite when the config sets none. */
+const DEFAULT_PORT = 5173;
+
+/** The entry of an install. The editor imports it, and it imports its chunks by relative path. */
 const OUTPUT_ENTRY = "main.js";
 
-/** Runs in every frame, because every frame imports the entry. */
-const STYLE_TAG = (css) =>
-	`(() => { const style = document.createElement("style"); style.textContent = ${JSON.stringify(css)}; document.head.append(style); })();`;
+/** A link, not an inline style, so each `url(...)` in the CSS resolves against the stylesheet. */
+const STYLESHEET_LINK = (fileName) =>
+	`(() => { const link = document.createElement("link"); link.rel = "stylesheet"; link.href = new URL(${JSON.stringify(fileName)}, import.meta.url).href; document.head.append(link); })();`;
 
-/** One entry, so Rollup sees the whole graph and shared code lands in one chunk. */
+/** One entry. So Rollup sees the full graph, and shared code goes into one chunk. */
 const ENTRY_CANDIDATES = ["src/main.ts", "src/main.js"];
+
+/** The editor imports only the entry module. So the entry links the stylesheet, or the extension shows no styles. */
+const linkStylesheet = (bundle) => {
+	const sheet = Object.values(bundle).find((file) => file.type === "asset" && file.fileName.endsWith(".css"));
+	if (!sheet) return;
+
+	const entryChunk = Object.values(bundle).find((file) => file.type === "chunk" && file.isEntry);
+	entryChunk.code = `${STYLESHEET_LINK(sheet.fileName)}\n${entryChunk.code}`;
+};
 
 const findEntry = (root) => {
 	const found = ENTRY_CANDIDATES.find((candidate) => fs.existsSync(path.join(root, candidate)));
@@ -46,136 +78,144 @@ const findEntry = (root) => {
 const readManifest = (root) => {
 	const file = path.join(root, MANIFEST);
 	if (!fs.existsSync(file)) throw new Error(`[builder] no ${MANIFEST} beside vite.config.js`);
-	return fs.readFileSync(file, "utf8");
+	const source = fs.readFileSync(file, "utf8");
+	return { manifest: validateManifest(parseJson(MANIFEST, source)), source };
+};
+
+const readReadme = (root) => {
+	const file = path.join(root, "README.md");
+	return fs.statSync(file, { throwIfNoEntry: false })?.isFile() ? fs.readFileSync(file, "utf8") : undefined;
 };
 
 /**
- * @param {{ builderUrl: string }} options `builderUrl` is the origin the editor
- * is opened on. It has no default: the dev server imports the SDK from it by
- * absolute URL, and an origin that is not the one serving the editor loads a
- * second SDK instance, whose frames never connect.
+ * @param {{ builderUrl: string }} options `builderUrl` is the origin of the
+ * editor. The dev server lets only that origin read its files.
  */
 export default function builderExtension({ builderUrl } = {}) {
 	if (!builderUrl) {
 		throw new Error('[builder] builderExtension() needs "builderUrl", the origin Builder is served on');
 	}
 
-	const sdkUrl = `${builderUrl.replace(/\/$/, "")}${SDK_PATH}`;
+	const builderOrigin = new URL(builderUrl).origin;
 
 	let root = process.cwd();
 	let entry = "";
 	let serving = false;
+	let serverOrigin = "";
 
-	/** What the dev server answers for a file, as the editor loads both over HTTP. */
+	/** The dev server path of a file. The editor loads the entry and the icon over HTTP. */
 	const servedPath = (file) => `/${path.relative(root, file)}`;
 
-	/**
-	 * The icon sits beside the entry, and the install flattens that directory, so
-	 * the one name in the manifest holds for the source tree and the install both.
-	 */
+	/** The icon is next to the entry. The install puts it in the root, so the manifest name fits both. */
 	const findIcon = (manifest) => (manifest.icon ? path.join(path.dirname(entry), manifest.icon) : "");
 
 	const readIcon = (file) => {
 		if (!fs.existsSync(file)) {
-			throw new Error(`[builder] ${MANIFEST} names ${path.relative(root, file)} as its icon, and it is missing`);
+			throw new Error(
+				`[builder] ${MANIFEST} names ${path.relative(root, file)} as its icon, and it is missing`,
+			);
 		}
 		return fs.readFileSync(file);
 	};
 
 	return {
 		name: "builder-extension",
-		// before Vite's own resolver, or it resolves the SDK to a file on disk and
-		// the frame ends up with a second instance of it
+		// run before the resolver of Vite. If not, Vite finds the shared modules on
+		// disk, and the extension gets a second copy of Vue
 		enforce: "pre",
 
 		config(config, env) {
 			root = path.resolve(config.root ?? process.cwd());
 			entry = findEntry(root);
 			serving = env.command === "serve";
+			const port = config.server?.port ?? DEFAULT_PORT;
+			serverOrigin =
+				config.server?.origin ?? `${config.server?.https ? "https" : "http"}://localhost:${port}`;
 			return {
-				// every asset is fetched relative to the module that names it, because
-				// an install lives under /builder_extension_asset/<name>@<version>/ and
-				// the default base would fetch a chunk's stylesheet from the site root
+				// a chunk or an asset URL resolves against the module that names it. So
+				// the build works under any install URL
 				base: "./",
-				// the frame is a modern browser by definition: it runs module scripts
 				build: {
 					target: "es2020",
-					// one stylesheet, because the entry carries the CSS itself. Split CSS
-					// also puts a stylesheet in the preload list of every lazy chunk, and
-					// the frame then asks for a file this plugin folded into the entry
+					// one stylesheet, because the entry links only one
 					cssCodeSplit: false,
 					rollupOptions: {
 						input: entry,
-						// never bundled: the frame shell's import map resolves it to the
-						// one instance Builder serves, for the entry and every chunk
-						external: [SDK],
+						preserveEntrySignatures: "strict",
+						external: SHARED_MODULES,
 						output: {
 							entryFileNames: OUTPUT_ENTRY,
-							chunkFileNames: "[name]-[hash].js",
-							assetFileNames: "[name]-[hash][extname]",
+							chunkFileNames: "chunks/[name]-[hash].js",
+							assetFileNames: "assets/[name]-[hash][extname]",
 						},
 					},
 				},
+				// the dev server prebundles with esbuild, which runs no plugin, so a
+				// prebundled copy would carry its own Vue. Vite merges this list with the project's
+				optimizeDeps: { exclude: SHARED_MODULES },
 				server: {
-					// an extension frame runs at an opaque origin, so it sends
-					// `Origin: null`, and Vite answers such a request with no CORS
-					// header at all
-					cors: { origin: "*" },
-					// the package is installed by a link, so it resolves outside this
-					// project and the dev server would refuse to serve it. The project
-					// itself has to be named too: this list replaces the default rather
-					// than adding to it
-					fs: { allow: [root, path.dirname(fileURLToPath(import.meta.url))] },
+					cors: { origin: [builderOrigin] },
+					// an asset URL resolves against the editor page, on the Builder site.
+					// So it must name the dev server. `strictPort` keeps the port in the
+					// origin correct: Vite stops, and does not try the next port
+					port,
+					strictPort: true,
+					origin: serverOrigin,
 				},
 			};
 		},
 
 		/**
-		 * Names Builder's own URL for the SDK, rather than leaving the specifier
-		 * for the frame's import map.
-		 *
-		 * Measured: `external: true` alone does not survive a dev server. Vite
-		 * rewrites the bare specifier to `/@id/frappe-builder-extension-sdk`, the browser
-		 * asks the dev server for it, and the import map never sees it. The frame
-		 * would then hold a second SDK instance, with no port and no channel.
-		 *
-		 * An absolute URL is left alone, and it resolves to the same module the
-		 * frame shell already loaded — as long as `builderUrl` is the origin the
-		 * editor is open on. That is why the option has no default.
+		 * Vite rewrites a bare import to its own copy, but it leaves a full URL as
+		 * it is. So in the dev server each shared module resolves to a URL here,
+		 * which answers with a bare re-export that the editor's import map resolves.
 		 */
 		resolveId(id) {
-			if (serving && id === SDK) return { id: sdkUrl, external: true };
+			if (serving && SHARED_MODULES.includes(id)) {
+				return { id: `${serverOrigin}${SHARED_PATH}${id}`, external: true };
+			}
+			if (id === HMR_FALLBACK_ID) return `\0${HMR_FALLBACK_ID}`;
+		},
+
+		load(id) {
+			if (id === `\0${HMR_FALLBACK_ID}`) return HMR_FALLBACK;
 		},
 
 		/**
-		 * Loads Vite's hot reload client, which nothing else here would.
-		 *
-		 * Vite injects it into the HTML it serves. An extension frame is served by
-		 * Builder instead, so the client never arrives — and `@vitejs/plugin-vue`
-		 * emits `import.meta.hot.accept(...)` with no guard, because it assumes the
-		 * client defined it. Without this the first component to load throws while
-		 * it evaluates, inside a frame, with nothing printed anywhere.
+		 * Loads the hot reload client of Vite. The editor serves its own page, so
+		 * Vite cannot add the client to it. `@vitejs/plugin-vue` calls
+		 * `import.meta.hot.accept(...)` with no check, so without the client the
+		 * first component fails when it loads.
 		 */
 		transform(code, id) {
 			if (!serving || id !== entry) return;
-			return { code: `import ${JSON.stringify(HMR_CLIENT)};\n${code}`, map: null };
+			const imports = [HMR_CLIENT, HMR_FALLBACK_ID].map((id) => `import ${JSON.stringify(id)};`).join("\n");
+			return { code: `${imports}\n${code}`, map: null };
 		},
 
-		/** What "load development extension" reads: identity, grants, and the entry. */
 		configureServer(server) {
-			server.middlewares.use(DESCRIPTOR_PATH, (request, response) => {
-				const manifest = JSON.parse(readManifest(root));
+			// answered raw, before Vite's own middleware, so the bare name reaches the browser
+			server.middlewares.use(SHARED_PATH, (request, response, next) => {
+				const name = request.url?.slice(1);
+				if (!SHARED_MODULES.includes(name)) return next();
+				response.setHeader("Content-Type", "text/javascript");
+				response.setHeader("Access-Control-Allow-Origin", builderOrigin);
+				response.end(`export * from ${JSON.stringify(name)};\n`);
+			});
+
+			/** The data that "Load dev extension" reads: the identity and the entry. */
+			server.middlewares.use(DESCRIPTOR_PATH, (_request, response) => {
+				const { manifest } = readManifest(root);
 				response.setHeader("Content-Type", "application/json");
-				// a middleware added here runs before Vite's own, so the CORS setting
-				// above has not been applied yet. The editor reads this cross-origin
-				response.setHeader("Access-Control-Allow-Origin", "*");
+				response.setHeader("Access-Control-Allow-Origin", builderOrigin);
 				response.end(
 					JSON.stringify({
-						v: 1,
+						v: manifest.v,
 						name: manifest.name,
 						label: manifest.label,
+						description: manifest.description,
 						version: manifest.version,
-						capabilities: manifest.capabilities ?? [],
+						readme: readReadme(root),
 						entry: servedPath(entry),
 						icon: manifest.icon ? servedPath(findIcon(manifest)) : undefined,
 					}),
@@ -184,39 +224,22 @@ export default function builderExtension({ builderUrl } = {}) {
 		},
 
 		/**
-		 * Emits the manifest, and moves the stylesheet into the entry.
+		 * Adds the manifest and the icon to the output, and makes the entry link the stylesheet.
 		 *
-		 * The frame shell is one static document that names no extension, so it can
-		 * link no stylesheet of one. A built extension's CSS therefore has to carry
-		 * itself, or every frame paints unstyled while the file sits in the install
-		 * directory unread.
-		 *
-		 * `order: "post"`, because Vite's own CSS plugin emits that file in this
-		 * same hook and this has to run after it.
+		 * `order: "post"`, because Vite's CSS plugin adds the stylesheet in this same hook.
 		 */
 		generateBundle: {
 			order: "post",
 			handler(_options, bundle) {
-				const source = readManifest(root);
+				const { manifest, source } = readManifest(root);
 				this.emitFile({ type: "asset", fileName: MANIFEST, source });
 
-				// the record derives its icon URL from the install root, so the file
-				// lands there under the name the manifest gave it
-				const manifest = JSON.parse(source);
+				// the install reads its icon from its root directory
 				if (manifest.icon) {
 					this.emitFile({ type: "asset", fileName: manifest.icon, source: readIcon(findIcon(manifest)) });
 				}
 
-				const sheets = Object.values(bundle).filter(
-					(file) => file.type === "asset" && file.fileName.endsWith(".css"),
-				);
-				if (!sheets.length) return;
-
-				const css = sheets.map((sheet) => sheet.source).join("\n");
-				sheets.forEach((sheet) => delete bundle[sheet.fileName]);
-
-				const entryChunk = Object.values(bundle).find((file) => file.type === "chunk" && file.isEntry);
-				entryChunk.code = `${STYLE_TAG(css)}\n${entryChunk.code}`;
+				linkStylesheet(bundle);
 			},
 		},
 	};

@@ -1,124 +1,118 @@
 # frappe-builder-extension-sdk
 
-The package a Builder extension author installs. It gives you the types, the Vue
-helpers, and the Vite plugin that builds an extension.
+The build tooling for trusted Frappe Builder extensions.
+
+A trusted extension is a Vue plugin that the Builder editor loads into its own app. The extension imports `builder`, `vue`, `pinia` and `frappe-ui` from the editor, so this package has no runtime code. It gives an extension project:
+
+- the Vite plugin that builds a package Builder can load, and serves the extension to the editor in development
+- the types of the `builder` module
+- the `builder-extension create` and `builder-extension package` commands
+- a GitHub workflow that publishes each release for Builder Hub
+
+An extension runs with the access of each user who opens the editor. Only a System Manager can install one.
 
 This repository is a copy of `frontend/extension-sdk` in
 [frappe/builder](https://github.com/frappe/builder). The SDK is not on npm yet, so this
-copy exists to let you install it today. Builder owns the source. Read
+copy lets you install it today. Builder owns the source. Read
 [Mirror, not fork](#mirror-not-fork) before you change a file here.
+
+This branch holds the SDK for **trusted extensions** (protocol 2). `main` holds the SDK
+for sandboxed extensions (protocol 1).
 
 ## Install
 
 ```sh
-npm install --save-dev github:stravo1/frappe-builder-extension-sdk
+npm install --save-dev github:stravo1/frappe-builder-extension-sdk#trusted-extensions-api
 ```
 
-The package builds itself on install, so you need no extra step.
+The package has no build step, so a git install needs nothing more.
 
-## Two halves
-
-The SDK has a runtime half and an author half.
-
-Builder serves the runtime half at `/builder_extension_asset/sdk/extension-sdk.js`.
-Every extension frame loads that one module through an import map. Your build
-never bundles it.
-
-This package is the author half. It holds the Vite plugin, the Vue helpers, and
-the types your editor reads.
-
-## Build an extension
-
-Point Vite at the plugin. Give it the origin that serves Builder.
-
-```js
-import vue from "@vitejs/plugin-vue";
-import { defineConfig } from "vite";
-import builderExtension from "frappe-builder-extension-sdk/vite";
-
-export default defineConfig({
-	plugins: [vue(), builderExtension({ builderUrl: "http://builder.localhost:8000" })],
-});
-```
-
-The plugin needs a `manifest.json` beside the config, and an entry at
-`src/main.js` or `src/main.ts`.
-
-## Write against the editor
-
-```js
-import builder from "frappe-builder-extension-sdk";
-
-builder.actions.register("say-hello", () => builder.ui.toast("hello"));
-```
-
-A Vue slot uses the `/vue` entry.
-
-```js
-import { defineSlot, useBuilderContext } from "frappe-builder-extension-sdk/vue";
-```
-
-`vue` is an optional peer dependency. Install it only if you write slots in Vue.
-
-## Run your extension
-
-1. Run `yarn dev` in your extension directory.
-2. Open Builder at the origin you gave to `builderUrl`.
-3. Choose **load development extension**, and paste the URL the terminal printed.
-
-The editor reads `/__builder-extension` from your dev server, and adds the extension
-for this session. A reload of the editor drops it.
-
-## Install on a site
-
-Builder has no install API yet. Until it arrives, `install_extension.py` writes the
-files and inserts the record.
-
-1. Run `yarn build` in your extension directory.
-2. Change to the `sites` directory of your bench.
-3. Run the script with the site name and the extension directory.
+## Create an extension
 
 ```sh
-cd sites
-../env/bin/python /path/to/install_extension.py builder.localhost /path/to/my-extension
+npx frappe-builder-extension-sdk create my-extension
 ```
 
-Run it again after every build. The script hashes the files, and a new hash makes the
-editor read the new entry.
+The command asks for a name, a publisher, a description, the Builder URL and a copyright holder. Then it writes a project with a sample left panel tab.
 
-To remove the extension:
+## The entry module
+
+The default export of `src/main.ts` is a Vue plugin. Builder calls `install(app, context)` once, before the editor shows:
+
+```ts
+import { leftPanelTabs, lucideIcon, useBuilderStore, type ExtensionContext } from "builder";
+import type { App } from "vue";
+import Panel from "./Panel.vue";
+
+export default {
+	install(_app: App, context: ExtensionContext) {
+		leftPanelTabs.register({
+			name: "seo",
+			label: "SEO",
+			icon: lucideIcon("lucide-search"),
+			component: Panel,
+		});
+		context.setOpenHandler(() => (useBuilderStore().leftPanelActiveTab = "seo"));
+	},
+};
+```
+
+`builder` gives:
+
+| Export                                                                                          | What it gives                                                                      |
+| ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `leftPanelTabs`, `toolbarItems`, `blockContextMenuOptions`, `propertySections`, `settingsItems` | The registries of the editor surfaces. `register` answers with its own unregister. |
+| `usePageStore`, `useCanvasStore`, `useBuilderStore`                                             | The editor's stores                                                                |
+| `blockController`, `Block`                                                                      | The selected blocks, and the block tree                                            |
+| `lucideIcon(name)`                                                                              | Any lucide icon, as a component for an `icon` field                                |
+| `StylePropertyControl`, `AttributePropertyControl`, `BasePropertyControl`                       | The controls of the property panel, for an extension's section                     |
+| `OptionToggle`, `ColorInput`, `RangeInput`                                                      | The widgets those controls draw instead of a text input                            |
+
+The `context` gives:
+
+| Field                                                  | What it gives                                                                   |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `name`, `label`, `version`                             | The installed extension                                                         |
+| `state.get()`, `state.set(values)`, `state.unset(key)` | Values stored for the user who opens the editor. `set` merges at the top level. |
+| `setOpenHandler(handler)`                              | What the Open button in the extension's details page runs                       |
+
+frappe-ui works with the user's own session. For example, `createListResource` and `call` reach the site's documents and whitelisted methods, and Frappe checks the user's permissions.
+
+## The manifest
+
+```json
+{
+	"v": 2,
+	"name": "publisher/extension",
+	"label": "Extension",
+	"description": "What it does.",
+	"version": "1.0.0",
+	"entry": "main.js",
+	"icon": "icon.svg"
+}
+```
+
+`v` must be 2. Builder refuses a protocol 1 package, which was built for sandboxed extensions.
+
+## Develop
+
+1. Set `builderUrl` in `vite.config.ts` to the origin that serves Builder.
+2. Run `npm run dev`.
+3. In the editor, open the **Extensions** tab and choose **Load dev extension**. The site must run in developer mode.
+4. Paste the URL that Vite prints.
+
+The dev extension runs until you reload the editor. Vite's hot reload updates its components.
+
+## Package and publish
 
 ```sh
-../env/bin/python /path/to/install_extension.py builder.localhost /path/to/my-extension --uninstall
+npm run build
+npm run package -- --tag v1.0.0
 ```
 
-Frappe refuses to delete an extension that a `Builder Token` still names. The script
-lists those tokens and asks before it deletes them. Published pages can use a token an
-extension wrote, so read the list first.
+The package command checks the build against the limits that Builder and Builder Hub use. Then it writes `release/<publisher>-<extension>-<version>.builderext` and prints its SHA-256.
 
-The script installs `dist/` after a build. If the directory has no `dist/`, it installs
-`src/`, which works for an extension of plain JavaScript.
-
-## Agent skill
-
-`skills/build-builder-extension/` is a skill for Claude Code and other agents. It carries the
-workflow, and the whole API as a reference file. Copy it into your skills directory:
-
-```sh
-cp -R skills/build-builder-extension ~/.claude/skills/
-```
-
-Then ask the agent for a Builder extension. The agent reads
-`references/extension-api.md` for the capabilities, the surfaces, and the error codes.
-
-The skill ships inside the package, so an install puts it in `node_modules` too. Builder owns
-it, and `sync.py` copies it here.
-
-## Versions
-
-The major version of this package is the protocol version it speaks. Version
-`1.x` works with any Builder that serves protocol 1. A Builder on a later
-protocol needs the matching major version.
+The release workflow does the same on each `v*` tag, and attaches the package to the GitHub release.
 
 ## Mirror, not fork
 
@@ -129,21 +123,9 @@ in this repository. Change it in Builder, then copy it across:
 python3 sync.py /path/to/apps/builder
 ```
 
-`sync.py` copies `src`, `tests`, `skills`, `install_extension.py`, `vite.js`, `package.json`,
-`tsconfig.build.json`, and `vite.config.mts`. It copies nothing else. This README and the
-license belong to this repository. Edit those here.
+`sync.py` copies `bin`, `src`, `templates`, `types`, `create.js`, `package.js`, `vite.js` and
+`package.json`. It copies nothing else. This README and the license belong to this
+repository. Edit those here.
 
 When the SDK reaches npm, this repository stops. Point your `package.json` at the npm
 version. The copy then goes stale with no effect on you.
-
-## Tests
-
-The SDK tests run in a Builder checkout, where the Vitest config lives:
-
-```sh
-cd apps/builder/frontend && yarn test
-```
-
-## License
-
-MIT. Copyright (c) Frappe Technologies Pvt. Ltd. and contributors.

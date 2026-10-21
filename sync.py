@@ -15,16 +15,17 @@ import pathlib
 import shutil
 import sys
 
-# What Builder owns: its path in the checkout, and where it lands here.
+# What Builder owns: its path in the checkout, and where it lands here. The
+# trusted SDK is build tooling only, so there is no runtime and no build step.
 COPIED = {
+	"frontend/extension-sdk/bin": "bin",
 	"frontend/extension-sdk/src": "src",
-	"frontend/extension-sdk/tests": "tests",
+	"frontend/extension-sdk/templates": "templates",
+	"frontend/extension-sdk/types": "types",
+	"frontend/extension-sdk/create.js": "create.js",
+	"frontend/extension-sdk/package.js": "package.js",
 	"frontend/extension-sdk/vite.js": "vite.js",
 	"frontend/extension-sdk/package.json": "package.json",
-	"frontend/extension-sdk/tsconfig.build.json": "tsconfig.build.json",
-	"frontend/extension-sdk/vite.config.mts": "vite.config.mts",
-	"frontend/extension-sdk/skills": "skills",
-	"frontend/extension-sdk/install_extension.py": "install_extension.py",
 }
 
 # Not copied, because it documents a git install that Builder's own copy does not.
@@ -92,7 +93,7 @@ def main(path: str):
 
 	print(f"\nREADME.md is not copied. Read {UPSTREAM_README} for changes worth carrying across.")
 	if changed:
-		print("Build and commit:\n  yarn build && git add -A && git commit")
+		print("Commit:\n  git add -A && git commit")
 
 
 if __name__ == "__main__":
