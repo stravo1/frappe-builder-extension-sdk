@@ -1,16 +1,16 @@
 {
-	"name": "frappe-builder-extension-sdk",
+	"name": "frappe-builder-plugin-sdk",
 	"version": "2.0.0",
-	"description": "The build tooling for trusted Frappe Builder extensions. It has no runtime code: the editor serves its own modules.",
+	"description": "The build tooling for trusted Frappe Builder plugins. It has no runtime code: the editor serves its own modules.",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/frappe/builder.git",
-		"directory": "frontend/extension-sdk"
+		"directory": "frontend/plugin-sdk"
 	},
 	"type": "module",
 	"bin": {
-		"builder-extension": "./bin/builder-extension.js"
+		"builder-plugin": "./bin/builder-plugin.js"
 	},
 	"files": [
 		"bin",
@@ -34,7 +34,7 @@
 		"access": "public"
 	},
 	"scripts": {
-		"package:extension": "node ./bin/builder-extension.js package"
+		"package:plugin": "node ./bin/builder-plugin.js package"
 	},
 	"peerDependencies": {
 		"vite": "^5.0.0 || ^6.0.0 || ^7.0.0"

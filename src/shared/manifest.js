@@ -4,14 +4,14 @@
 
 /**
  * The `v` field of a manifest. Keep it the same as `PROTOCOL_VERSION` in
- * `builder/extensions/constants.py`.
+ * `builder/plugins/constants.py`.
  */
 export const PROTOCOL_VERSION = 1;
 
 const MANIFEST_FIELDS = new Set(["v", "name", "label", "description", "version", "entry", "icon"]);
 
 const REQUIRED_MANIFEST_FIELDS = ["v", "name", "label", "description", "version", "entry"];
-const EXTENSION_NAME = /^[a-z0-9][a-z0-9-]*\/[a-z0-9][a-z0-9-]*$/;
+const PLUGIN_NAME = /^[a-z0-9][a-z0-9-]*\/[a-z0-9][a-z0-9-]*$/;
 const SEMVER =
 	/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
 // the editor shows the label and the description. No markup and no control characters
@@ -53,7 +53,7 @@ export const validateManifest = (value, source = "manifest.json") => {
 	if (unknown) fail(source, `contains unknown field "${unknown}"`);
 
 	if (value.v !== PROTOCOL_VERSION) fail(source, `field "v" must equal ${PROTOCOL_VERSION}`);
-	if (typeof value.name !== "string" || !EXTENSION_NAME.test(value.name)) {
+	if (typeof value.name !== "string" || !PLUGIN_NAME.test(value.name)) {
 		fail(source, 'field "name" must use the lowercase "publisher/name" form');
 	}
 	requireText(value, "label", 80, source);

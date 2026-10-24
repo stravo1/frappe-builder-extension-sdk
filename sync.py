@@ -1,7 +1,7 @@
 """Refresh this mirror from a Builder checkout.
 
 frappe/builder owns the SDK source and the API reference. This repository is a copy,
-so that an extension author can install the SDK before it is on npm. Never edit a
+so that a plugin author can install the SDK before it is on npm. Never edit a
 copied file here. Change it in Builder, then run this.
 
     python3 sync.py /path/to/apps/builder
@@ -18,25 +18,25 @@ import sys
 # What Builder owns: its path in the checkout, and where it lands here. The
 # trusted SDK is build tooling only, so there is no runtime and no build step.
 COPIED = {
-	"frontend/extension-sdk/bin": "bin",
-	"frontend/extension-sdk/src": "src",
-	"frontend/extension-sdk/templates": "templates",
-	"frontend/extension-sdk/types": "types",
-	"frontend/extension-sdk/create.js": "create.js",
-	"frontend/extension-sdk/package.js": "package.js",
-	"frontend/extension-sdk/vite.js": "vite.js",
-	"frontend/extension-sdk/package.json": "package.json",
+	"frontend/plugin-sdk/bin": "bin",
+	"frontend/plugin-sdk/src": "src",
+	"frontend/plugin-sdk/templates": "templates",
+	"frontend/plugin-sdk/types": "types",
+	"frontend/plugin-sdk/create.js": "create.js",
+	"frontend/plugin-sdk/package.js": "package.js",
+	"frontend/plugin-sdk/vite.js": "vite.js",
+	"frontend/plugin-sdk/package.json": "package.json",
 }
 
 # Not copied, because it documents a git install that Builder's own copy does not.
-UPSTREAM_README = "frontend/extension-sdk/README.md"
+UPSTREAM_README = "frontend/plugin-sdk/README.md"
 
 HERE = pathlib.Path(__file__).parent
 
 
 def checkout_directory(path: str) -> pathlib.Path:
 	directory = pathlib.Path(path).resolve()
-	if not (directory / "frontend/extension-sdk/package.json").is_file():
+	if not (directory / "frontend/plugin-sdk/package.json").is_file():
 		raise SystemExit(f"no SDK at {directory}. Point this at an apps/builder checkout")
 	return directory
 

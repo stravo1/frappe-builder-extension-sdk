@@ -1,6 +1,6 @@
 {
 	"v": 1,
-	"name": __EXTENSION_ID_JSON__,
+	"name": __PLUGIN_ID_JSON__,
 	"label": __LABEL_JSON__,
 	"description": __DESCRIPTION_JSON__,
 	"version": "1.0.0",

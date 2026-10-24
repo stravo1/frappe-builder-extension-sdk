@@ -1,4 +1,4 @@
-/** Builds and checks the archive that an extension author publishes. The archive cannot change. */
+/** Builds and checks the archive that a plugin author publishes. The archive cannot change. */
 
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -12,14 +12,14 @@ export const MAX_PACKAGE_BYTES = 10 * 1024 * 1024;
 /** The largest file a package may hold. It matches the Hub and the site. */
 export const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
-/** The limits below match `builder/extensions/constants.py`. Builder refuses a package past any of them. */
+/** The limits below match `builder/plugins/constants.py`. Builder refuses a package past any of them. */
 export const MAX_PACKAGE_FILES = 200;
 export const MAX_EXTRACTED_BYTES = 30 * 1024 * 1024;
 export const MAX_MANIFEST_BYTES = 128 * 1024;
 /** Each SVG in the package, not only the icon. Builder calls it `MAX_ICON_BYTES`. */
 export const MAX_SVG_BYTES = 64 * 1024;
 
-/** The types a package may hold. Keep in step with `ASSET_TYPES` in `builder/extensions/constants.py`. */
+/** The types a package may hold. Keep in step with `ASSET_TYPES` in `builder/plugins/constants.py`. */
 export const ALLOWED_SUFFIXES = new Set([
 	".js",
 	".css",
@@ -216,7 +216,7 @@ export const makeZip = (files) => {
 	return Buffer.concat([...localParts, central, end]);
 };
 
-export const packageExtension = ({ root = process.cwd(), dist = "dist", output = "release", tag } = {}) => {
+export const packagePlugin = ({ root = process.cwd(), dist = "dist", output = "release", tag } = {}) => {
 	const projectRoot = path.resolve(root);
 	const manifest = validateRepository(projectRoot);
 	const releaseTag = `v${manifest.version}`;
@@ -240,7 +240,7 @@ export const packageExtension = ({ root = process.cwd(), dist = "dist", output =
 
 	const outputRoot = resolveProjectPath(projectRoot, output, "output directory");
 	fs.mkdirSync(outputRoot, { recursive: true });
-	const filename = `${manifest.name.replace("/", "-")}-${manifest.version}.builderext`;
+	const filename = `${manifest.name.replace("/", "-")}-${manifest.version}.builderplugin`;
 	const destination = path.join(outputRoot, filename);
 	const temporary = `${destination}.tmp`;
 	fs.writeFileSync(temporary, archive, { mode: 0o644 });

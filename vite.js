@@ -1,13 +1,13 @@
 /**
- * `frappe-builder-extension-sdk/vite`: the build that an extension author runs.
+ * `frappe-builder-plugin-sdk/vite`: the build that a plugin author runs.
  *
  * This file is plain JavaScript. Vite gives the imports of a config to Node.
  * Node does not remove types from a file under `node_modules`. So a config
  * cannot load a TypeScript plugin from a package.
  *
  * ```js
- * import builderExtension from "frappe-builder-extension-sdk/vite";
- * export default defineConfig({ plugins: [vue(), builderExtension({ builderUrl })] });
+ * import builderPlugin from "frappe-builder-plugin-sdk/vite";
+ * export default defineConfig({ plugins: [vue(), builderPlugin({ builderUrl })] });
  * ```
  */
 
@@ -19,7 +19,7 @@ const MANIFEST = "manifest.json";
 
 /**
  * The editor's own modules. The editor page's import map resolves each bare
- * name to the editor's copy, so an extension shares its Vue, stores and
+ * name to the editor's copy, so a plugin shares its Vue, stores and
  * frappe-ui. The build must never bundle them.
  */
 export const SHARED_MODULES = ["builder", "vue", "pinia", "frappe-ui"];
@@ -45,17 +45,17 @@ const reExport = (name) =>
 const SHARED_PATH = "/@builder-shared/";
 
 /** The editor reads this path to learn what the dev server serves. */
-const DESCRIPTOR_PATH = "/__builder-extension";
+const DESCRIPTOR_PATH = "/__builder-plugin";
 
 /** The hot reload client of Vite. It loads from the dev server, which serves the entry. */
 const HMR_CLIENT = "/@vite/client";
 
 /**
- * The extension shares the editor's Vue. A built editor runs Vue's production
+ * The plugin shares the editor's Vue. A built editor runs Vue's production
  * build, which has no hot reload runtime, and `@vitejs/plugin-vue` calls that
  * runtime with no check. So in that editor this module gives a runtime that does
  * nothing, and an edit reloads the editor instead. The editor then loads the dev
- * extension again. The entry imports it first, so it runs before any component.
+ * plugin again. The entry imports it first, so it runs before any component.
  */
 const HMR_FALLBACK_ID = "virtual:builder-hmr-fallback";
 const HMR_FALLBACK = `if (import.meta.hot && typeof __VUE_HMR_RUNTIME__ === "undefined") {
@@ -71,10 +71,10 @@ const DEFAULT_PORT = 5173;
 const OUTPUT_ENTRY = "main.js";
 
 /**
- * The editor loads the extension's styles before its own. So where an extension
+ * The editor loads the plugin's styles before its own. So where a plugin
  * class and an editor class are equally specific, such as `rounded-4` and
  * `rounded-tr-none`, the editor's comes later and wins on the editor's elements.
- * The dev server adds each `<style>` itself, so this module moves the extension's
+ * The dev server adds each `<style>` itself, so this module moves the plugin's
  * to the start of the head, in the order the dev server adds them. Each node is
  * placed once: a move is itself an addition the observer sees, and placing it
  * again would swap two styles forever.
@@ -100,7 +100,7 @@ const STYLESHEET_LINK = (fileName) =>
 /** One entry. So Rollup sees the full graph, and shared code goes into one chunk. */
 const ENTRY_CANDIDATES = ["src/main.ts", "src/main.js"];
 
-/** The editor imports only the entry module. So the entry links the stylesheet, or the extension shows no styles. */
+/** The editor imports only the entry module. So the entry links the stylesheet, or the plugin shows no styles. */
 const linkStylesheet = (bundle) => {
 	const sheet = Object.values(bundle).find((file) => file.type === "asset" && file.fileName.endsWith(".css"));
 	if (!sheet) return;
@@ -112,7 +112,7 @@ const linkStylesheet = (bundle) => {
 const findEntry = (root) => {
 	const found = ENTRY_CANDIDATES.find((candidate) => fs.existsSync(path.join(root, candidate)));
 	if (found) return path.join(root, found);
-	throw new Error(`[builder] no extension entry: expected one of ${ENTRY_CANDIDATES.join(" or ")}`);
+	throw new Error(`[builder] no plugin entry: expected one of ${ENTRY_CANDIDATES.join(" or ")}`);
 };
 
 const readManifest = (root) => {
@@ -131,9 +131,9 @@ const readReadme = (root) => {
  * @param {{ builderUrl: string }} options `builderUrl` is the origin of the
  * editor. The dev server lets only that origin read its files.
  */
-export default function builderExtension({ builderUrl } = {}) {
+export default function builderPlugin({ builderUrl } = {}) {
 	if (!builderUrl) {
-		throw new Error('[builder] builderExtension() needs "builderUrl", the origin Builder is served on');
+		throw new Error('[builder] builderPlugin() needs "builderUrl", the origin Builder is served on');
 	}
 
 	const builderOrigin = new URL(builderUrl).origin;
@@ -159,9 +159,9 @@ export default function builderExtension({ builderUrl } = {}) {
 	};
 
 	return {
-		name: "builder-extension",
+		name: "builder-plugin",
 		// run before the resolver of Vite. If not, Vite finds the shared modules on
-		// disk, and the extension gets a second copy of Vue
+		// disk, and the plugin gets a second copy of Vue
 		enforce: "pre",
 
 		config(config, env) {
@@ -246,7 +246,7 @@ export default function builderExtension({ builderUrl } = {}) {
 				response.end(reExport(name));
 			});
 
-			/** The data that "Load dev extension" reads: the identity and the entry. */
+			/** The data that "Load dev plugin" reads: the identity and the entry. */
 			server.middlewares.use(DESCRIPTOR_PATH, (_request, response) => {
 				const { manifest } = readManifest(root);
 				response.setHeader("Content-Type", "application/json");

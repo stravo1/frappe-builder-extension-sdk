@@ -1,4 +1,4 @@
-/** Create a publishable Vue extension project. */
+/** Create a publishable Builder plugin project. */
 
 import fs from "node:fs";
 import path from "node:path";
@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 
 const TEMPLATE_ROOT = fileURLToPath(new URL("./templates/create", import.meta.url));
 const RELEASE_WORKFLOW = fileURLToPath(new URL("./templates/github/workflows/release.yml", import.meta.url));
-const GENERIC_DESCRIPTION = "A Frappe Builder extension.";
+const GENERIC_DESCRIPTION = "A Frappe Builder plugin.";
 const PLAIN_TEXT = /^[^<>\u0000-\u001f\u007f]*$/;
 
 const fail = (message) => {
@@ -77,7 +77,7 @@ const initializeRepository = (directory) => {
 	if (result.status !== 0) fail(`could not initialize Git: ${result.stderr.trim() || "git init failed"}`);
 };
 
-export const createExtension = ({
+export const createPlugin = ({
 	directory,
 	name,
 	publisher,
@@ -87,10 +87,10 @@ export const createExtension = ({
 	cwd = process.cwd(),
 	initializeGit = true,
 } = {}) => {
-	const label = plainText(name, "Extension name", 80);
-	const extensionSlug = slugify(label);
+	const label = plainText(name, "Plugin name", 80);
+	const pluginSlug = slugify(label);
 	const publisherSlug = slugify(plainText(publisher, "Publisher", 80));
-	if (!extensionSlug) fail("Extension name must contain at least one letter or number");
+	if (!pluginSlug) fail("Plugin name must contain at least one letter or number");
 	if (!publisherSlug) fail("Publisher must contain at least one letter or number");
 
 	const projectDescription = description.trim()
@@ -98,7 +98,7 @@ export const createExtension = ({
 		: GENERIC_DESCRIPTION;
 	const holder = plainText(copyrightHolder, "Copyright holder", 160);
 	const origin = builderOrigin(builderUrl);
-	const target = path.resolve(cwd, directory || extensionSlug);
+	const target = path.resolve(cwd, directory || pluginSlug);
 	assertEmptyDirectory(target);
 
 	const values = {
@@ -107,12 +107,12 @@ export const createExtension = ({
 		COPYRIGHT_HOLDER_JSON: JSON.stringify(holder),
 		DESCRIPTION: projectDescription,
 		DESCRIPTION_JSON: JSON.stringify(projectDescription),
-		EXTENSION_ID_JSON: JSON.stringify(`${publisherSlug}/${extensionSlug}`),
-		EXTENSION_SLUG: extensionSlug,
-		EXTENSION_SLUG_JSON: JSON.stringify(extensionSlug),
+		PLUGIN_ID_JSON: JSON.stringify(`${publisherSlug}/${pluginSlug}`),
+		PLUGIN_SLUG: pluginSlug,
+		PLUGIN_SLUG_JSON: JSON.stringify(pluginSlug),
 		LABEL: label,
 		LABEL_JSON: JSON.stringify(label),
-		PACKAGE_NAME_JSON: JSON.stringify(`@${publisherSlug}/${extensionSlug}`),
+		PACKAGE_NAME_JSON: JSON.stringify(`@${publisherSlug}/${pluginSlug}`),
 		PUBLISHER: publisherSlug,
 		TOOLTIP_JSON: JSON.stringify("Open " + label),
 		YEAR: String(new Date().getFullYear()),
@@ -130,7 +130,7 @@ export const createExtension = ({
 	fs.copyFileSync(RELEASE_WORKFLOW, workflow);
 	if (initializeGit) initializeRepository(target);
 
-	return { directory: target, extensionId: `${publisherSlug}/${extensionSlug}` };
+	return { directory: target, pluginId: `${publisherSlug}/${pluginSlug}` };
 };
 
 const requiredAnswer = async (terminal, current, prompt) => {
@@ -144,7 +144,7 @@ export const promptForCreateOptions = async (options) => {
 	try {
 		return {
 			...options,
-			name: await requiredAnswer(terminal, options.name, "Extension name"),
+			name: await requiredAnswer(terminal, options.name, "Plugin name"),
 			publisher: await requiredAnswer(
 				terminal,
 				options.publisher,

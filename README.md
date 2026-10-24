@@ -1,22 +1,22 @@
-# frappe-builder-extension-sdk
+# frappe-builder-plugin-sdk
 
-The build tooling for trusted Frappe Builder extensions.
+The build tooling for trusted Frappe Builder plugins.
 
-A trusted extension is a Vue plugin that the Builder editor loads into its own app. The extension imports `builder`, `vue`, `pinia` and `frappe-ui` from the editor, so this package has no runtime code. It gives an extension project:
+A trusted plugin is a Vue plugin that the Builder editor loads into its own app. The plugin imports `builder`, `vue`, `pinia` and `frappe-ui` from the editor, so this package has no runtime code. It gives a plugin project:
 
-- the Vite plugin that builds a package Builder can load, and serves the extension to the editor in development
+- the Vite plugin that builds a package Builder can load, and serves the plugin to the editor in development
 - the types of the `builder` module
-- the `builder-extension create` and `builder-extension package` commands
+- the `builder-plugin create` and `builder-plugin package` commands
 - a GitHub workflow that publishes each release for Builder Hub
 
-An extension runs with the access of each user who opens the editor. Only a System Manager can install one.
+A plugin runs with the access of each user who opens the editor. Only a System Manager can install one.
 
-This repository is a copy of `frontend/extension-sdk` in
+This repository is a copy of `frontend/plugin-sdk` in
 [frappe/builder](https://github.com/frappe/builder). The SDK is not on npm yet, so this
 copy lets you install it today. Builder owns the source. Read
 [Mirror, not fork](#mirror-not-fork) before you change a file here.
 
-This branch holds the SDK for **trusted extensions**. `main` holds the SDK for sandboxed
+This branch holds the SDK for **trusted plugins**. `main` holds the SDK for sandboxed
 extensions.
 
 ## Install
@@ -27,10 +27,10 @@ npm install --save-dev github:stravo1/frappe-builder-extension-sdk#trusted-exten
 
 The package has no build step, so a git install needs nothing more.
 
-## Create an extension
+## Create a plugin
 
 ```sh
-npx frappe-builder-extension-sdk create my-extension
+npx frappe-builder-plugin-sdk create my-plugin
 ```
 
 The command asks for a name, a publisher, a description, the Builder URL and a copyright holder. Then it writes a project with a sample left panel tab.
@@ -40,12 +40,12 @@ The command asks for a name, a publisher, a description, the Builder URL and a c
 The default export of `src/main.ts` is a Vue plugin. Builder calls `install(app, context)` once, before the editor shows:
 
 ```ts
-import { leftPanelTabs, lucideIcon, useBuilderStore, type ExtensionContext } from "builder";
+import { leftPanelTabs, lucideIcon, useBuilderStore, type PluginContext } from "builder";
 import type { App } from "vue";
 import Panel from "./Panel.vue";
 
 export default {
-	install(_app: App, context: ExtensionContext) {
+	install(_app: App, context: PluginContext) {
 		leftPanelTabs.register({
 			name: "seo",
 			label: "SEO",
@@ -65,16 +65,16 @@ export default {
 | `usePageStore`, `useCanvasStore`, `useBuilderStore`                                             | The editor's stores                                                                |
 | `blockController`, `Block`                                                                      | The selected blocks, and the block tree                                            |
 | `lucideIcon(name)`                                                                              | Any lucide icon, as a component for an `icon` field                                |
-| `StylePropertyControl`, `AttributePropertyControl`, `BasePropertyControl`                       | The controls of the property panel, for an extension's section                     |
+| `StylePropertyControl`, `AttributePropertyControl`, `BasePropertyControl`                       | The controls of the property panel, for a plugin's section                     |
 | `OptionToggle`, `ColorInput`, `RangeInput`                                                      | The widgets those controls draw instead of a text input                            |
 
 The `context` gives:
 
 | Field                                                  | What it gives                                                                   |
 | ------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| `name`, `label`, `version`                             | The installed extension                                                         |
+| `name`, `label`, `version`                             | The installed plugin                                                         |
 | `state.get()`, `state.set(values)`, `state.unset(key)` | Values stored for the user who opens the editor. `set` merges at the top level. |
-| `setOpenHandler(handler)`                              | What the Open button in the extension's details page runs                       |
+| `setOpenHandler(handler)`                              | What the Open button in the plugin's details page runs                       |
 
 ### Every other module
 
@@ -86,21 +86,21 @@ import { getBlockString } from "builder/internal/utils/helpers";
 import BlockLayers from "builder/internal/components/BlockLayers.vue";
 ```
 
-Each one is the editor's own module, so a store or a registry is the same instance the editor uses. These imports carry no promise: a change in Builder can break them, so their types are `any`. When an extension needs something often, ask for it in `builder`.
+Each one is the editor's own module, so a store or a registry is the same instance the editor uses. These imports carry no promise: a change in Builder can break them, so their types are `any`. When a plugin needs something often, ask for it in `builder`.
 
 frappe-ui works with the user's own session. For example, `createListResource` and `call` reach the site's documents and whitelisted methods, and Frappe checks the user's permissions.
 
 ### Styles
 
-The editor loads the extension's styles before its own. Where an extension class and an editor class are equally specific, the editor's wins, so an extension cannot restyle the editor by accident. A more specific rule still wins as usual, so the extension's own classes beat the editor's base styles. To change a style that the editor sets on a shared component, such as a frappe-ui `Button`, use `!important`, for example `!h-8`.
+The editor loads the plugin's styles before its own. Where a plugin class and an editor class are equally specific, the editor's wins, so a plugin cannot restyle the editor by accident. A more specific rule still wins as usual, so the plugin's own classes beat the editor's base styles. To change a style that the editor sets on a shared component, such as a frappe-ui `Button`, use `!important`, for example `!h-8`.
 
 ## The manifest
 
 ```json
 {
 	"v": 1,
-	"name": "publisher/extension",
-	"label": "Extension",
+	"name": "publisher/plugin",
+	"label": "Plugin",
 	"description": "What it does.",
 	"version": "1.0.0",
 	"entry": "main.js",
@@ -108,16 +108,16 @@ The editor loads the extension's styles before its own. Where an extension class
 }
 ```
 
-A manifest has no `permissions` field. An extension runs with the access of the user who opens the editor.
+A manifest has no `permissions` field. A plugin runs with the access of the user who opens the editor.
 
 ## Develop
 
 1. Set `builderUrl` in `vite.config.ts` to the origin that serves Builder.
 2. Run `npm run dev`.
-3. In the editor, open the **Extensions** tab and choose **Load dev extension**. The site must run in developer mode.
+3. In the editor, open the **Plugins** tab and choose **Load dev plugin**. The site must run in developer mode.
 4. Paste the URL that Vite prints.
 
-The dev extension runs until you reload the editor. Vite's hot reload updates its components.
+The dev plugin runs until you reload the editor. Vite's hot reload updates its components.
 
 ## Package and publish
 
@@ -126,13 +126,13 @@ npm run build
 npm run package -- --tag v1.0.0
 ```
 
-The package command checks the build against the limits that Builder and Builder Hub use. Then it writes `release/<publisher>-<extension>-<version>.builderext` and prints its SHA-256.
+The package command checks the build against the limits that Builder and Builder Hub use. Then it writes `release/<publisher>-<plugin>-<version>.builderplugin` and prints its SHA-256.
 
 The release workflow does the same on each `v*` tag, and attaches the package to the GitHub release.
 
 ## Mirror, not fork
 
-`frontend/extension-sdk` in frappe/builder owns every SDK file here. Do not change one
+`frontend/plugin-sdk` in frappe/builder owns every SDK file here. Do not change one
 in this repository. Change it in Builder, then copy it across:
 
 ```sh

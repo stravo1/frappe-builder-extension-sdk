@@ -1,11 +1,11 @@
 /**
- * The types of "builder", the editor's own module that an extension imports.
+ * The types of "builder", the editor's own module that a plugin imports.
  *
  * The editor serves the module itself, so these declarations are the only part
- * that an extension's build reads. Keep them the same as
+ * that a plugin's build reads. Keep them the same as
  * `frontend/src/host/builder.ts` in Builder.
  *
- * The registries and the extension context are typed in full. The stores,
+ * The registries and the plugin context are typed in full. The stores,
  * `Block` and `blockController` are typed loosely for now, because their real
  * types reach most of the editor's source.
  */
@@ -118,7 +118,7 @@ declare module "builder" {
 	 *
 	 * `StylePropertyControl` reads and writes the style named by `propertyKey`, and
 	 * `AttributePropertyControl` the attribute. `BasePropertyControl` holds a value
-	 * of the extension's own, through `getModelValue` and `setModelValue`. Each one
+	 * of the plugin's own, through `getModelValue` and `setModelValue`. Each one
 	 * draws a text input unless its `component` names another widget:
 	 * `OptionToggle`, `ColorInput` or `RangeInput`.
 	 */
@@ -129,20 +129,20 @@ declare module "builder" {
 	export const OptionToggle: Component;
 	export const RangeInput: Component;
 
-	/** What an extension stores for the user who opens the editor. It merges at the top level. */
-	export type ExtensionState = {
+	/** What a plugin stores for the user who opens the editor. It merges at the top level. */
+	export type PluginState = {
 		get: () => Promise<Record<string, unknown>>;
 		set: (state: Record<string, unknown>) => Promise<void>;
 		unset: (key: string) => Promise<void>;
 	};
 
-	/** The second argument of an extension's `install(app, context)`. */
-	export type ExtensionContext = {
+	/** The second argument of a plugin's `install(app, context)`. */
+	export type PluginContext = {
 		name: string;
 		label: string;
 		version: string;
-		state: ExtensionState;
-		/** What the Open button in the extension's details page runs. */
+		state: PluginState;
+		/** What the Open button in the plugin's details page runs. */
 		setOpenHandler: (handler: () => void) => void;
 	};
 }
@@ -152,8 +152,8 @@ declare module "builder" {
  * module without its suffix, and a `.vue` module with it. For example,
  * `builder/internal/stores/pageStore` or `builder/internal/components/BlockLayers.vue`.
  *
- * These carry no promise. A change in Builder can break an extension that imports
- * one, so the imports are untyped. Pin the Builder release the extension was
+ * These carry no promise. A change in Builder can break a plugin that imports
+ * one, so the imports are untyped. Pin the Builder release the plugin was
  * built against.
  */
 declare module "builder/internal/*";
